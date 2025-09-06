@@ -1,4 +1,4 @@
-# Generative-AI-for-Demystifying-Legal-Documents  
+# Generative AI for Demystifying Legal Documents  
 
 This project leverages **Generative AI** to simplify and analyze complex legal documents. It provides an interactive **Streamlit-based web app** where users can upload legal PDFs, extract key information, and ask questions in natural language.  
 
