@@ -9,3 +9,6 @@ This project leverages **Generative AI** to simplify and analyze complex legal d
 - ⚡ **Streamlit UI** – Simple and interactive web interface.  
 
 ---
+
+## No Code from AI
+- "Should be built from Scratch" : Team Leader - Mukundh  
