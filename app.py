@@ -16,7 +16,7 @@ with st.sidebar:
     st.subheader("🌍 Language")
     language = st.selectbox(
         "Answer language:",
-        ["English", "Hindi", "Kannada", "French", "German", "Spanish", "Tamil", "Telugu"],
+        ["English", "Hindi", "Kannada"],
         index=0
     )
 
