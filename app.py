@@ -174,16 +174,9 @@ with st.sidebar:
 
     st.markdown("### 🌍 Language Preferences")
     language = st.selectbox(
-<<<<<<< HEAD
         "Answer language:",
         ["English", "Hindi", "Kannada"],
         index=0
-=======
-        "Response Language:",
-        ["English", "Hindi", "Kannada"],
-        index=0,
-        help="🗣️ All AI responses will be in your selected language"
->>>>>>> 6359b934caf6045eda9f47b75a3d271ae4fdc661
     )
 
     st.markdown("### 🛠️ Quick Actions")
