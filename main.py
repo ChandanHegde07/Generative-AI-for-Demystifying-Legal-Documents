@@ -15,6 +15,7 @@ except ImportError:
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_API_KEY")
 
+
 if not API_KEY:
     raise ValueError("Google API key not found. Please set it in your .env file as GOOGLE_API_KEY.")
 

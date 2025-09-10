@@ -29,6 +29,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+
 # ----------------- Sidebar -----------------
 with st.sidebar:
     st.header("📂 Upload Documents")
