@@ -2,3 +2,6 @@ streamlit
 google-generativeai
 pypdf
 python-dotenv
+google-cloud-vision
+google-cloud-translate
+pandas

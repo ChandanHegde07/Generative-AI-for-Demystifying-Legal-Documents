@@ -23,40 +23,56 @@ genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ----------------- Document Extraction -----------------
-def extract_text_from_pdfs(pdf_files) -> str:
+def extract_text_from_files(uploaded_files) -> str:
     """
-    Extract text from multiple PDF files.
-    Falls back to OCR if needed and OCR is enabled.
-    Returns merged text from all files.
+    Extract text from multiple PDF/image files.
+    - Uses PyPDF for PDFs
+    - Falls back to OCR if needed
+    - Direct OCR for JPG/PNG images
+    Returns merged text from all files
     """
     all_text = ""
 
-    for pdf_file in pdf_files:
+    for file in uploaded_files:
         text = ""
 
-        # Try normal PDF text extraction
-        try:
-            reader = PdfReader(pdf_file)
-            for page in reader.pages:
-                text += page.extract_text() or ""
-        except Exception:
-            pass
-
-        # Fallback to OCR if no text
-        if OCR_ENABLED and not text.strip():
+        # ---------- PDF Handling ----------
+        if file.name.lower().endswith(".pdf"):
             try:
-                pdf_file.seek(0)
+                reader = PdfReader(file)
+                for page in reader.pages:
+                    text += page.extract_text() or ""
+            except Exception:
+                pass
+
+            # Fallback OCR if empty
+            if OCR_ENABLED and not text.strip():
+                try:
+                    file.seek(0)
+                    client = vision.ImageAnnotatorClient()
+                    content = file.read()
+                    image = vision.Image(content=content)
+                    response = client.document_text_detection(image=image)
+                    text = response.full_text_annotation.text if response.text_annotations else ""
+                except Exception as e:
+                    text = f"[OCR failed: {e}]"
+
+        # ---------- Image Handling ----------
+        elif file.name.lower().endswith((".jpg", ".jpeg", ".png")) and OCR_ENABLED:
+            try:
+                file.seek(0)
                 client = vision.ImageAnnotatorClient()
-                content = pdf_file.read()
+                content = file.read()
                 image = vision.Image(content=content)
-                response = client.text_detection(image=image)
+                response = client.document_text_detection(image=image)
                 text = response.full_text_annotation.text if response.text_annotations else ""
             except Exception as e:
-                text = f"[OCR failed: {e}]"
+                text = f"[Image OCR failed: {e}]"
 
         all_text += text.strip() + "\n\n--- End of Document ---\n\n"
 
     return all_text.strip()
+
 
 # ----------------- Domain-Specific Intelligence -----------------
 def detect_document_type(text: str) -> str:
