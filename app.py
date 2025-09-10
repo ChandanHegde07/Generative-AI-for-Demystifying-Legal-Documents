@@ -73,16 +73,29 @@ else:
     # --- Key Info Tab ---
     with tabs[0]:
         st.subheader("Key Information")
-        key_info = extract_key_entities(st.session_state.pdf_text, st.session_state.doc_type)
-        if language != "English":
-            key_info = translate_text(key_info, language)
-        rows = [line.split(":", 1) for line in key_info.split("\n") if ":" in line]
+        key_info_raw = extract_key_entities(st.session_state.pdf_text, st.session_state.doc_type)
 
-        if rows:
-            df = pd.DataFrame(rows, columns=["Category", "Details"])
-            st.table(df)
+        # Robustly handle cases where key_info is empty or not in expected format
+        if not key_info_raw or key_info_raw.strip() == "":
+            render_card("No key information could be extracted from the document. Please ensure the document contains relevant data or check the `extract_key_entities` function.", bg="#e8f4ff", border="#007bff")
         else:
-            render_card(key_info, bg="#e8f4ff", border="#007bff")
+            key_info_processed = key_info_raw
+            if language != "English":
+                key_info_processed = translate_text(key_info_processed, language)
+
+            rows = [line.split(":", 1) for line in key_info_processed.split("\n") if ":" in line]
+
+            if rows:
+                df = pd.DataFrame(rows, columns=["Category", "Details"])
+                st.table(df)
+            else:
+                # This 'else' branch is hit if key_info_processed has content,
+                # but none of its lines are in the "Key: Value" format (i.e., contain a colon).
+                render_card(
+                    f"Key information was extracted, but no structured 'Key: Value' pairs were found. "
+                    f"Raw output (check formatting):<br><pre>{key_info_processed}</pre>",
+                    bg="#fff3cd", border="#ff9800"
+                )
 
     # --- Checklist Tab ---
     with tabs[1]:
@@ -90,9 +103,10 @@ else:
         checklist = generate_compliance_checklist(st.session_state.pdf_text, st.session_state.doc_type)
         if language != "English":
             checklist = translate_text(checklist, language)
-        for line in checklist.split("\n"):
+        # FIX: Ensure unique keys for checkboxes using enumerate
+        for i, line in enumerate(checklist.split("\n")):
             if line.strip().startswith("- [ ]"):
-                st.checkbox(line.replace("- [ ]", "").strip(), key=line)
+                st.checkbox(line.replace("- [ ]", "").strip(), key=f"checklist_item_{i}_{line.strip()}")
             elif line.strip():
                 render_card(line, bg="#f8f9fa", border="#6c757d")
 
