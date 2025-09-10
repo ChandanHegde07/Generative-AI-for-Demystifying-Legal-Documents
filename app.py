@@ -37,28 +37,9 @@ with st.sidebar:
         type=["pdf", "jpg", "jpeg", "png"],
         accept_multiple_files=True
     )
-<<<<<<< HEAD
     language = st.selectbox("Response Language", ["English", "Hindi", "Kannada"], index=0)
     if st.button("🧹 Clear Session", use_container_width=True):
         for key in ["pdf_text", "doc_type", "chat_history"]:
-=======
-    
-    if uploaded_files:
-        st.markdown("### ✅ Uploaded Files")
-        for i, file in enumerate(uploaded_files, 1):
-            st.markdown(f"**{i}.** 📄 {file.name}")
-
-    st.markdown("### 🌍 Language Preferences")
-    language = st.selectbox(
-        "Answer language:",
-        ["English", "Hindi", "Kannada"],
-        index=0
-    )
-
-    st.markdown("### 🛠️ Quick Actions")
-    if st.button("🧹 Clear All Data", type="secondary", use_container_width=True):
-        for key in ['chat_history', 'pdf_text', 'doc_type', 'analysis_done']:
->>>>>>> e795c4e9e2d8d670af188fba3d10e50a5188784d
             if key in st.session_state:
                 del st.session_state[key]
         st.rerun()
