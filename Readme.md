@@ -27,5 +27,5 @@ This project is an **AI-powered assistant** designed to simplify and analyze com
 
 ## Authors
 
-- 1. Mukundh R Reddy
-- 2. Chandan Hegde
+- Mukundh R Reddy
+- Chandan Hegde
