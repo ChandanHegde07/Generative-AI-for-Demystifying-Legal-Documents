@@ -23,23 +23,19 @@ This project is an **AI-powered assistant** designed to simplify and analyze com
 - Simplifying **medical reports or prescriptions** into everyday language.  
 - Identifying potential **risks or concerns** in healthcare documents.  
 - Providing **regional language support** for patients and families.  
+## Authors  
 
-## Authors
-
-<div align="center">
-  <div style="display:flex; gap:30px; justify-content:center; align-items:center;">
-    <div style="text-align:center">
-      <img src="images/author.jpeg" alt="Mukundh R Reddy"
-           width="160" height="160"
-           style="border-radius:50%; object-fit:cover; display:block;" />
-      <p><strong>👨‍💻 Built by: Mukundh R Reddy</strong></p>
-    </div>
-
-    <div style="text-align:center">
-      <img src="images/author1.jpeg" alt="Chandan Hegde"
-           width="160" height="160"
-           style="border-radius:50%; object-fit:cover; display:block;" />
-      <p><strong>🤝 Helped by: Chandan Hegde</strong></p>
-    </div>
-  </div>
-</div>
+<p align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="images/author.jpeg" alt="Mukundh R Reddy" width="160" height="160" style="border-radius:50%"><br>
+        <b>👨‍💻 Built by: Mukundh R Reddy</b>
+      </td>
+      <td align="center">
+        <img src="images/author1.jpeg" alt="Chandan Hegde" width="160" height="160" style="border-radius:50%"><br>
+        <b>🤝 Helped by: Chandan Hegde</b>
+      </td>
+    </tr>
+  </table>
+</p>
