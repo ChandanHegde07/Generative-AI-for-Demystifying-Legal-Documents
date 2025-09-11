@@ -29,11 +29,11 @@ This project is an **AI-powered assistant** designed to simplify and analyze com
   <table>
     <tr>
       <td align="center">
-        <img src="images/author.jpeg" alt="Mukundh R Reddy" width="160" height="160" style="border-radius:50%"><br>
+        <img src="images/author1.jpeg" alt="Mukundh R Reddy" width="160" height="160" style="border-radius:50%"><br>
         <b>Mukundh R Reddy</b>
       </td>
       <td align="center">
-        <img src="images/author1.jpeg" alt="Chandan Hegde" width="160" height="160" style="border-radius:50%"><br>
+        <img src="images/author2.jpeg" alt="Chandan Hegde" width="160" height="160" style="border-radius:50%"><br>
         <b>Chandan Hegde</b>
       </td>
     </tr>
