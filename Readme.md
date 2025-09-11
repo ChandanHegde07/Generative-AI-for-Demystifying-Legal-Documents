@@ -23,3 +23,9 @@ This project is an **AI-powered assistant** designed to simplify and analyze com
 - Simplifying **medical reports or prescriptions** into everyday language.  
 - Identifying potential **risks or concerns** in healthcare documents.  
 - Providing **regional language support** for patients and families.  
+
+
+## Authors
+
+- 1. Mukundh R Reddy
+- 2. Chandan Hegde
