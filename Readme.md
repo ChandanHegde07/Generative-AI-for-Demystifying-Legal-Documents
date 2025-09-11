@@ -24,14 +24,22 @@ This project is an **AI-powered assistant** designed to simplify and analyze com
 - Identifying potential **risks or concerns** in healthcare documents.  
 - Providing **regional language support** for patients and families.  
 
-## Authors  
+## Authors
 
-<p align="center">
-  <img src="images/author.jpeg" alt="Mukundh R Reddy" width="180" style="border-radius:50%; margin-right: 30px;"/>
-  <img src="images/author1.jpeg" alt="Chandan Hegde" width="180" style="border-radius:50%;"/>
-</p>
+<div align="center">
+  <div style="display:flex; gap:30px; justify-content:center; align-items:center;">
+    <div style="text-align:center">
+      <img src="images/author.jpeg" alt="Mukundh R Reddy"
+           width="160" height="160"
+           style="border-radius:50%; object-fit:cover; display:block;" />
+      <p><strong>👨‍💻 Built by: Mukundh R Reddy</strong></p>
+    </div>
 
-<p align="center">
-  <b>👨‍💻 Built by: Mukundh R Reddy</b><br>
-  <b>🤝 Helped by: Chandan Hegde</b>
-</p>
+    <div style="text-align:center">
+      <img src="images/author1.jpeg" alt="Chandan Hegde"
+           width="160" height="160"
+           style="border-radius:50%; object-fit:cover; display:block;" />
+      <p><strong>🤝 Helped by: Chandan Hegde</strong></p>
+    </div>
+  </div>
+</div>
