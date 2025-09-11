@@ -23,3 +23,14 @@ This project is an **AI-powered assistant** designed to simplify and analyze com
 - Simplifying **medical reports or prescriptions** into everyday language.  
 - Identifying potential **risks or concerns** in healthcare documents.  
 - Providing **regional language support** for patients and families.  
+
+## Author  
+
+<p align="center">
+  <img src="images/author.jpeg" alt="Mukundh R Reddy" width="200" style="border-radius:50%"/>
+</p>
+
+<p align="center">
+  <b>👨‍💻 Mukundh R Reddy</b><br>
+  Built this project with a focus on Generative AI for simplifying healthcare documents.
+</p>
