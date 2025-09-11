@@ -30,11 +30,11 @@ This project is an **AI-powered assistant** designed to simplify and analyze com
     <tr>
       <td align="center">
         <img src="images/author.jpeg" alt="Mukundh R Reddy" width="160" height="160" style="border-radius:50%"><br>
-        <b>👨‍💻 Built by: Mukundh R Reddy</b>
+        <b>Mukundh R Reddy</b>
       </td>
       <td align="center">
         <img src="images/author1.jpeg" alt="Chandan Hegde" width="160" height="160" style="border-radius:50%"><br>
-        <b>🤝 Helped by: Chandan Hegde</b>
+        <b>Chandan Hegde</b>
       </td>
     </tr>
   </table>
