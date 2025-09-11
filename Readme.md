@@ -24,13 +24,14 @@ This project is an **AI-powered assistant** designed to simplify and analyze com
 - Identifying potential **risks or concerns** in healthcare documents.  
 - Providing **regional language support** for patients and families.  
 
-## Author  
+## Authors  
 
 <p align="center">
-  <img src="images/author.jpeg" alt="Mukundh R Reddy" width="200" style="border-radius:50%"/>
+  <img src="images/author.jpeg" alt="Mukundh R Reddy" width="180" style="border-radius:50%; margin-right: 30px;"/>
+  <img src="images/author1.jpeg" alt="Chandan Hegde" width="180" style="border-radius:50%;"/>
 </p>
 
 <p align="center">
-  <b>👨‍💻 Mukundh R Reddy</b><br>
-  Built this project with a focus on Generative AI for simplifying healthcare documents.
+  <b>👨‍💻 Built by: Mukundh R Reddy</b><br>
+  <b>🤝 Helped by: Chandan Hegde</b>
 </p>
