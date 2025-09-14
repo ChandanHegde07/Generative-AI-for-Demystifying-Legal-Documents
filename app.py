@@ -3,14 +3,13 @@ import pandas as pd
 import re
 from main import (
     extract_text_from_files, ask_gemini, summarize_text,
-    translate_text, detect_document_type, extract_key_entities,
-    generate_compliance_checklist, explain_complex_terms, risk_assessment
+    translate_text, detect_document_type, generate_compliance_checklist,
+    explain_complex_terms, risk_assessment, extract_key_entities
 )
 
 # ----------------- Helper -----------------
 def render_card(text, bg="#fff3cd", border="#ff9800"):
     """Render styled card with proper bold formatting."""
-    # Convert Markdown bold (**text**) to HTML <b>text</b>
     safe_text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
 
     st.markdown(f"""
@@ -20,6 +19,7 @@ def render_card(text, bg="#fff3cd", border="#ff9800"):
         {safe_text}
     </div>
     """, unsafe_allow_html=True)
+
 
 # ----------------- Page Config -----------------
 st.set_page_config(
@@ -45,14 +45,17 @@ with st.sidebar:
                 del st.session_state[key]
         st.rerun()
 
+
 # ----------------- Session State -----------------
 for key in ["pdf_text", "doc_type", "chat_history"]:
     if key not in st.session_state:
         st.session_state[key] = [] if key == "chat_history" else ""
 
+
 # ----------------- Header -----------------
 st.title("🏥 AI-Powered Healthcare Document Assistant")
 st.caption("Simplify • Translate • Analyze • Ask Questions")
+
 
 # ----------------- Processing -----------------
 if uploaded_files and not st.session_state.pdf_text:
@@ -73,67 +76,57 @@ else:
     # --- Key Info Tab ---
     with tabs[0]:
         st.subheader("Key Information")
-        key_info_raw = extract_key_entities(st.session_state.pdf_text, st.session_state.doc_type)
+        key_info_dict = extract_key_entities(st.session_state.pdf_text, st.session_state.doc_type)
 
-        # Robustly handle cases where key_info is empty or not in expected format
-        if not key_info_raw or key_info_raw.strip() == "":
-            render_card("No key information could be extracted from the document. Please ensure the document contains relevant data or check the `extract_key_entities` function.", bg="#e8f4ff", border="#007bff")
+        if not key_info_dict or len(key_info_dict) == 0:
+            render_card("No key information found in the document.", bg="#e8f4ff", border="#007bff")
         else:
-            key_info_processed = key_info_raw
             if language != "English":
-                key_info_processed = translate_text(key_info_processed, language)
+                key_info_dict = translate_text(key_info_dict, language)
 
-            rows = [line.split(":", 1) for line in key_info_processed.split("\n") if ":" in line]
-
-            if rows:
-                df = pd.DataFrame(rows, columns=["Category", "Details"])
-                st.table(df)
-            else:
-                # This 'else' branch is hit if key_info_processed has content,
-                # but none of its lines are in the "Key: Value" format (i.e., contain a colon).
-                render_card(
-                    f"Key information was extracted, but no structured 'Key: Value' pairs were found. "
-                    f"Raw output (check formatting):<br><pre>{key_info_processed}</pre>",
-                    bg="#fff3cd", border="#ff9800"
-                )
+            df = pd.DataFrame(list(key_info_dict.items()), columns=["Category", "Details"])
+            st.table(df)
+            st.caption(f"Found {len(key_info_dict)} key information items")
 
     # --- Checklist Tab ---
     with tabs[1]:
         st.subheader("Action Checklist")
-        checklist = generate_compliance_checklist(st.session_state.pdf_text, st.session_state.doc_type)
+        checklist_items = generate_compliance_checklist(
+            st.session_state.pdf_text, st.session_state.doc_type
+        )
+
         if language != "English":
-            checklist = translate_text(checklist, language)
-        # FIX: Ensure unique keys for checkboxes using enumerate
-        for i, line in enumerate(checklist.split("\n")):
-            if line.strip().startswith("- [ ]"):
-                st.checkbox(line.replace("- [ ]", "").strip(), key=f"checklist_item_{i}_{line.strip()}")
-            elif line.strip():
-                render_card(line, bg="#f8f9fa", border="#6c757d")
+            checklist_items = translate_text(checklist_items, language)
+
+        for i, item in enumerate(checklist_items):
+            st.checkbox(item, key=f"checklist_{i}")
 
     # --- Risks Tab ---
     with tabs[2]:
         st.subheader("Risk Assessment")
         risks = risk_assessment(st.session_state.pdf_text, st.session_state.doc_type)
+
         if language != "English":
             risks = translate_text(risks, language)
 
-        # Split into sections by double newline
-        sections = [s.strip() for s in risks.split("\n\n") if s.strip()]
-        for sec in sections:
-            render_card(sec, bg="#fff3cd", border="#ff9800")
+        for risk in risks:
+            render_card(risk, bg="#fff3cd", border="#ff9800")
 
     # --- Summary Tab ---
     with tabs[3]:
         st.subheader("Document Summary")
         summary = summarize_text(st.session_state.pdf_text, st.session_state.doc_type)
+
         if language != "English":
             summary = translate_text(summary, language)
+
         render_card(summary, bg="#e2f7e1", border="#28a745")
 
     # --- Terms Tab ---
     with tabs[4]:
         st.subheader("Complex Terms Explained")
         terms = explain_complex_terms(st.session_state.pdf_text, st.session_state.doc_type)
+
         if language != "English":
             terms = translate_text(terms, language)
 
@@ -151,7 +144,6 @@ else:
             answer = ask_gemini(user_q, st.session_state.pdf_text, language, st.session_state.doc_type)
             st.session_state.chat_history.append((user_q, answer))
 
-        # Show conversation history
         if st.session_state.chat_history:
             for q, a in reversed(st.session_state.chat_history):
                 render_card(f"<b>Q:</b> {q}<br><b>A:</b> {a}", bg="#f8f9fa", border="#343a40")

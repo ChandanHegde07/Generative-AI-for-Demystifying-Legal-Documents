@@ -15,7 +15,6 @@ except ImportError:
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_API_KEY")
 
-
 if not API_KEY:
     raise ValueError("Google API key not found. Please set it in your .env file as GOOGLE_API_KEY.")
 
@@ -23,17 +22,11 @@ if not API_KEY:
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
+
 # ----------------- Document Extraction -----------------
 def extract_text_from_files(uploaded_files) -> str:
-    """
-    Extract text from multiple PDF/image files.
-    - Uses PyPDF for PDFs
-    - Falls back to OCR if needed
-    - Direct OCR for JPG/PNG images
-    Returns merged text from all files
-    """
+    """Extract text from PDFs and images with OCR fallback."""
     all_text = ""
-
     for file in uploaded_files:
         text = ""
 
@@ -46,7 +39,6 @@ def extract_text_from_files(uploaded_files) -> str:
             except Exception:
                 pass
 
-            # Fallback OCR if empty
             if OCR_ENABLED and not text.strip():
                 try:
                     file.seek(0)
@@ -71,13 +63,79 @@ def extract_text_from_files(uploaded_files) -> str:
                 text = f"[Image OCR failed: {e}]"
 
         all_text += text.strip() + "\n\n--- End of Document ---\n\n"
-
     return all_text.strip()
 
 
-# ----------------- Domain-Specific Intelligence -----------------
+# ----------------- Helpers -----------------
+def is_meaningful_content(text: str) -> bool:
+    """Check if extracted content is meaningful."""
+    if not text or text.strip() == "":
+        return False
+    text_lower = text.lower().strip()
+
+    empty_patterns = [
+        "**", "*", "not specified", "not mentioned", "not found",
+        "not available", "no information", "details not provided",
+        "information not available", "not listed", "not clearly mentioned"
+    ]
+    for pattern in empty_patterns:
+        if text_lower == pattern or text_lower.startswith(pattern):
+            return False
+
+    meaningful_text = text_lower.replace("*", "").replace(" ", "").replace("-", "").replace("•", "")
+    if len(meaningful_text) < 15:
+        return False
+    return True
+
+
+# ----------------- Structured Entity Extraction -----------------
+def extract_key_entities(text: str, doc_type: str) -> dict:
+    """Extract structured key entities as dictionary instead of free text."""
+    entity_prompts = {
+        "Medical Policy": """
+        Extract these medical policy elements (return "N/A" if not found):
+        Coverage Details, Premium Information, Deductibles and Co-payments,
+        Exclusions, Claim Procedures, Network Providers, Policy Terms, Waiting Periods
+        """,
+        "Medical Report": """
+        Extract these discharge summary/medical report elements (return "N/A" if not found):
+        Diagnosis, Medications, Procedures, Follow-up Instructions, Warning Signs, Lifestyle Advice
+        """,
+        "Legal Contract": """
+        Extract these contract elements (return "N/A" if not found):
+        Parties Involved, Contract Duration, Payment Terms, Obligations,
+        Termination Clauses, Penalties, Governing Law
+        """
+    }
+
+    base_prompt = entity_prompts.get(doc_type.split('/')[0], "Extract key information:")
+
+    prompt = f"""
+    {base_prompt}
+
+    Document: {text[:4000]}
+
+    Format as:
+    Category: Information (or "N/A" if not found)
+    """
+
+    try:
+        response = model.generate_content(prompt)
+        result = {}
+        for line in response.text.strip().split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key, value = key.strip(), value.strip()
+                if is_meaningful_content(value):
+                    result[key] = value
+        return result
+    except Exception as e:
+        return {"Error": f"Key entity extraction failed: {str(e)}"}
+
+
+# ----------------- Document Type Detection -----------------
 def detect_document_type(text: str) -> str:
-    """Detect the type of legal/medical document using Gemini."""
+    """Detect the type of document using Gemini."""
     prompt = f"""
     Analyze this document and classify it into one of these categories:
     - Legal Contract/Agreement
@@ -88,10 +146,9 @@ def detect_document_type(text: str) -> str:
     - Government Document
     - Employment Document
     - Other Legal Document
-    
+
     Document text: {text[:1000]}
-    
-    Respond with just the category name and a brief explanation (1-2 sentences).
+    Respond with just the category name.
     """
     try:
         response = model.generate_content(prompt)
@@ -99,353 +156,202 @@ def detect_document_type(text: str) -> str:
     except Exception as e:
         return f"Document Classification (Error: {str(e)})"
 
-def extract_key_entities(text: str, doc_type: str) -> str:
-    """Extract domain-specific key entities based on document type."""
-    
-    entity_prompts = {
-        "Legal Contract": """
-        Extract these key legal elements from this contract:
-        - Parties involved (who are the contracting parties)
-        - Contract duration/important dates
-        - Payment terms and amounts
-        - Key obligations and responsibilities
-        - Termination clauses
-        - Penalties or consequences for breach
-        - Governing law/jurisdiction
-        """,
-        
-        "Medical Policy": """
-        Extract these medical policy elements:
-        - Coverage details (what's included)
-        - Premium amounts and payment schedule
-        - Deductibles and co-payments
-        - Excluded conditions or treatments
-        - Claim filing procedures
-        - Network providers and restrictions
-        - Policy period and renewal terms
-        """,
-        
-        "Medical Report": """
-        Extract these medical elements:
-        - Diagnosis or medical findings
-        - Prescribed medications and dosages
-        - Treatment recommendations
-        - Follow-up instructions
-        - Test results and their significance
-        - Lifestyle recommendations
-        - Warning signs to watch for
-        """,
-        
-        "Employment Document": """
-        Extract these employment elements:
-        - Job title and responsibilities
-        - Salary and benefits
-        - Work schedule and location
-        - Reporting structure
-        - Performance expectations
-        - Termination conditions
-        - Confidentiality requirements
-        """
-    }
-    
-    base_prompt = entity_prompts.get(doc_type.split('/')[0], "Extract key information from this document:")
-    
+
+# ----------------- Checklist -----------------
+def generate_compliance_checklist(text: str, doc_type: str) -> list:
+    """Generate a compliance or action checklist as list of items."""
     prompt = f"""
-    You are an expert legal/medical document analyst. 
-    
-    {base_prompt}
-    
+    Create a practical checklist based on this {doc_type} document.
     Document: {text[:4000]}
-    
-    Present the information in a clear, structured format with bullet points.
-    Focus only on information that is explicitly mentioned in the document.
+    Format each item as a short bullet point.
     """
-    
     try:
         response = model.generate_content(prompt)
-        return response.text.strip()
+        items = []
+        for line in response.text.strip().split("\n"):
+            line = line.strip("-• ").strip()
+            if len(line) > 5:
+                items.append(line)
+        return items
     except Exception as e:
-        return f"Key entity extraction failed: {str(e)}"
+        return [f"Checklist generation failed: {str(e)}"]
 
-def generate_compliance_checklist(text: str, doc_type: str) -> str:
-    """Generate a compliance or action checklist based on document type."""
-    
-    checklist_prompts = {
-        "Legal Contract": """
-        Create a practical checklist for someone who needs to comply with this contract:
-        - Pre-signing requirements (what to verify before signing)
-        - Important deadlines and dates to remember
-        - Key obligations they must fulfill
-        - Payment schedules and amounts
-        - Documentation they need to maintain
-        - Warning signs of potential issues
-        """,
-        
-        "Medical Policy": """
-        Create an actionable checklist for policy holders:
-        - How to file claims (step-by-step process)
-        - Important deadlines for claims and renewals
-        - What documentation to keep
-        - Emergency procedures and contacts
-        - Annual requirements (checkups, renewals)
-        - Cost-saving tips based on policy terms
-        """,
-        
-        "Medical Report": """
-        Create a patient action checklist:
-        - Medications to take (names, dosages, timing)
-        - Lifestyle changes recommended
-        - Follow-up appointments to schedule
-        - Symptoms to monitor and report
-        - Emergency warning signs requiring immediate attention
-        - Questions to ask at next appointment
-        """,
-        
-        "Employment Document": """
-        Create an employee checklist:
-        - Onboarding requirements to complete
-        - Key policies to understand and follow
-        - Performance milestones and deadlines
-        - Benefits to enroll in
-        - Required training or certifications
-        - Important contacts and reporting procedures
-        """
-    }
-    
-    base_prompt = checklist_prompts.get(doc_type.split('/')[0], "Create an action checklist based on this document:")
-    
+
+# ----------------- Risk Assessment -----------------
+def risk_assessment(text: str, doc_type: str) -> list:
+    """Assess potential risks or considerations as list of items."""
     prompt = f"""
-    {base_prompt}
-    
+    Identify potential risks, concerns, or limitations in this {doc_type} document.
     Document: {text[:4000]}
-    
-    Format as a clear, actionable checklist with specific items they can act on.
-    Use checkboxes (- [ ]) format for each actionable item.
+    Format each risk as a short bullet point.
     """
-    
     try:
         response = model.generate_content(prompt)
-        return response.text.strip()
+        risks = []
+        for line in response.text.strip().split("\n"):
+            line = line.strip("-• ").strip()
+            if len(line) > 5:
+                risks.append(line)
+        return risks
     except Exception as e:
-        return f"Checklist generation failed: {str(e)}"
+        return [f"Risk assessment failed: {str(e)}"]
 
+
+# ----------------- Terms Explanation -----------------
 def explain_complex_terms(text: str, doc_type: str) -> str:
-    """Explain complex legal/medical terms found in the document."""
-    
+    """Explain complex terms in simple language."""
     prompt = f"""
-    You are an expert in {doc_type} who specializes in explaining complex terms to everyday people.
-    
-    Analyze this document and find complex legal, medical, or technical terms that regular people might not understand.
-    For each term, provide a simple explanation in plain language.
-    
+    Identify complex terms in this {doc_type} document and explain them in plain language.
     Document: {text[:4000]}
-    
-    Format each explanation as:
-    **[Term]**: Simple explanation in everyday language
-    
-    Only include terms that actually appear in the document.
-    Focus on the most important or confusing terms (maximum 10 terms).
+    Format as:
+    **[Term]**: explanation
     """
-    
     try:
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
         return f"Term explanation failed: {str(e)}"
 
-def risk_assessment(text: str, doc_type: str) -> str:
-    """Assess potential risks or important considerations."""
-    
-    risk_prompts = {
-        "Legal Contract": """
-        Identify potential risks, concerns, or unfavorable terms in this contract:
-        - Unusual or strict penalties
-        - Vague or ambiguous language that could cause problems
-        - Automatic renewal clauses
-        - Limitation of liability issues
-        - Unfavorable payment terms
-        - Difficult termination conditions
-        """,
-        
-        "Medical Policy": """
-        Identify potential issues or limitations with this medical policy:
-        - Significant coverage gaps or exclusions
-        - High out-of-pocket costs or deductibles
-        - Restrictive network limitations
-        - Complex claim procedures that could lead to denials
-        - Pre-authorization requirements
-        - Waiting periods for coverage
-        """,
-        
-        "Medical Report": """
-        Identify important health considerations and warnings:
-        - Serious conditions that require immediate attention
-        - Potential drug interactions or side effects
-        - Lifestyle changes that are critical for health
-        - Symptoms that would require emergency care
-        - Follow-up care that shouldn't be delayed
-        - Test results that need monitoring
-        """,
-        
-        "Employment Document": """
-        Identify potential employment concerns:
-        - Unusual restrictive clauses (non-compete, etc.)
-        - Unclear job expectations or responsibilities
-        - Below-market compensation or benefits
-        - Strict performance requirements
-        - Limited advancement opportunities
-        - Concerning termination conditions
-        """
-    }
-    
-    base_prompt = risk_prompts.get(doc_type.split('/')[0], "Identify important considerations and potential risks in this document:")
-    
-    prompt = f"""
-    {base_prompt}
-    
-    Document: {text[:4000]}
-    
-    Present as clear warnings or considerations. Be specific about what to watch out for.
-    Note: This is informational analysis, not professional legal or medical advice.
-    """
-    
-    try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
-    except Exception as e:
-        return f"Risk assessment failed: {str(e)}"
 
-# ----------------- Enhanced Gemini Helpers -----------------
+# ----------------- Q&A -----------------
 def ask_gemini(question: str, context: str, language: str = "English", doc_type: str = "") -> str:
-    """Ask Gemini a question with enhanced domain-specific context."""
+    """Ask Gemini a question with domain context."""
     if not context:
         return "No content extracted from the documents."
 
-    # Enhanced prompt with domain expertise
-    domain_context = ""
-    if doc_type:
-        domain_context = f"You are an expert analyst specializing in {doc_type} documents. "
+    domain_context = f"You are an expert in {doc_type} documents. " if doc_type else ""
 
     prompt = f"""
-    {domain_context}You are helping someone understand their document in simple, clear language.
-    
+    {domain_context}
     Document Type: {doc_type}
     Document Context: {context[:12000]}
-    
+
     User Question: {question}
-    
-    Instructions:
-    - Provide a detailed, helpful answer in {language}
-    - Focus on practical implications and actionable information
-    - Explain any complex terms you use
-    - If the document doesn't contain the answer, say so clearly
-    - Be specific and cite relevant parts of the document when possible
-    
-    Answer:
-    """
 
+    Answer in {language}.
+    """
     try:
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        return f"I apologize, but I encountered an error while analyzing your question: {str(e)}"
+        return f"Q&A failed: {str(e)}"
 
-def simplify_text(text: str, doc_type: str = "") -> str:
-    """Simplify complex legal/medical text into plain language."""
-    if not text:
-        return "No content to simplify."
 
-    domain_note = f" Focus on {doc_type} terminology and concepts." if doc_type else ""
-
-    prompt = f"""
-    Simplify the following text into plain, user-friendly language that anyone can understand.
-    {domain_note}
-    
-    Guidelines:
-    - Replace legal/medical jargon with everyday words
-    - Break down complex sentences into simpler ones
-    - Explain what things mean in practical terms
-    - Keep the important information but make it accessible
-    
-    Text to simplify: {text[:6000]}
-    """
-    
-    try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
-    except Exception as e:
-        return f"Text simplification failed: {str(e)}"
-
+# ----------------- Simplify & Summarize -----------------
 def summarize_text(text: str, doc_type: str = "") -> str:
-    """Generate a concise summary of the document(s)."""
     if not text:
         return "No content to summarize."
-
-    domain_focus = ""
-    if "Legal Contract" in doc_type:
-        domain_focus = "Focus on parties, obligations, terms, and key dates."
-    elif "Medical" in doc_type:
-        domain_focus = "Focus on coverage, costs, procedures, and important limitations."
-    elif "Employment" in doc_type:
-        domain_focus = "Focus on role, compensation, responsibilities, and key policies."
-
-    prompt = f"""
-    Create a comprehensive summary of this {doc_type} document.
-    {domain_focus}
-    
-    Document: {text[:8000]}
-    
-    Structure your summary with:
-    1. Document Overview (what type of document and main purpose)
-    2. Key Points (most important information)
-    3. Important Details (dates, amounts, requirements)
-    4. Action Items (what the reader needs to do)
-    
-    Keep it detailed but easy to understand.
-    """
-    
+    prompt = f"Summarize this {doc_type} document: {text[:8000]}"
     try:
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        return f"Document summary failed: {str(e)}"
+        return f"Summary failed: {str(e)}"
+
 
 # ----------------- Translation -----------------
-def translate_text(text: str, target_language: str) -> str:
+# ----------------- Enhanced Translation with Retry Logic -----------------
+def translate_text(text, target_language: str):
     """
-    Translate text into the selected language.
-    Uses Google Cloud Translate if available, else falls back to Gemini.
+    Enhanced translation with better error handling and retry logic.
+    Translate text, dict, or list into the selected language.
     """
     if not text or target_language == "English":
         return text
 
-    lang_map = {
-        "English": "en",
-        "Hindi": "hi",
-        "Kannada": "kn",
-    }
+    # Handle None or empty inputs
+    if text is None:
+        return None
+        
+    lang_map = {"English": "en", "Hindi": "hi", "Kannada": "kn"}
+    
+    # Handle dict
+    if isinstance(text, dict):
+        translated_dict = {}
+        for k, v in text.items():
+            try:
+                if v and str(v).strip() and not str(v).lower() in ['n/a', 'not found', 'not available']:
+                    translated_dict[k] = translate_text(v, target_language)
+                else:
+                    translated_dict[k] = v  # Keep original for empty/N/A values
+            except Exception:
+                translated_dict[k] = v  # Keep original on failure
+        return translated_dict
 
-    # Try Google Cloud Translate first
+    # Handle list
+    if isinstance(text, list):
+        translated_list = []
+        for item in text:
+            try:
+                if item and str(item).strip():
+                    translated_list.append(translate_text(item, target_language))
+                else:
+                    translated_list.append(item)
+            except Exception:
+                translated_list.append(item)  # Keep original on failure
+        return translated_list
+
+    # Handle string
+    text_str = str(text).strip()
+    if not text_str or text_str.lower() in ['n/a', 'not found', 'not available', 'not specified']:
+        return text
+        
+    # Try Google Cloud Translation first (if available)
     if OCR_ENABLED:
-        try:
-            translate_client = translate.Client()
-            target = lang_map.get(target_language, "en")
-            result = translate_client.translate(text, target_language=target)
-            return result["translatedText"]
-        except Exception:
-            pass  # Fall back to Gemini
+        for attempt in range(3):
+            try:
+                translate_client = translate.Client()
+                target = lang_map.get(target_language, "en")
+                
+                # Split long text into chunks to avoid API limits
+                if len(text_str) > 5000:
+                    chunks = [text_str[i:i+4000] for i in range(0, len(text_str), 4000)]
+                    translated_chunks = []
+                    for chunk in chunks:
+                        if chunk.strip():
+                            result = translate_client.translate(chunk, target_language=target)
+                            translated_chunks.append(result["translatedText"])
+                        else:
+                            translated_chunks.append(chunk)
+                    return " ".join(translated_chunks)
+                else:
+                    result = translate_client.translate(text_str, target_language=target)
+                    return result["translatedText"]
+            except Exception:
+                if attempt == 2:
+                    break
 
-    # Fallback: Gemini-based translation
-    prompt = f"""
-    Translate the following text into {target_language}.
-    Maintain the formatting and structure of the original text.
-    Keep technical terms accurate and provide context where needed.
-    
-    Text to translate: {text[:8000]}
-    """
-    
-    try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
-    except Exception as e:
-        return f"Translation to {target_language} failed: {str(e)}"
+    # Fallback: Gemini translation with retry logic
+    for attempt in range(3):
+        try:
+            # Enhanced prompt for better translation quality
+            prompt = f"""
+            Translate the following text from English to {target_language}.
+            Rules:
+            1. Maintain the original structure, formatting, and meaning
+            2. Keep medical/legal terminology accurate
+            3. Preserve any formatting like **bold** or bullet points
+            4. If there are technical terms that don't have direct translations, provide the closest equivalent
+            5. Do not add explanations, just provide the translation
+            
+            Text to translate:
+            {text_str[:8000]}
+            
+            Translation:
+            """
+            
+            response = model.generate_content(prompt)
+            translated = response.text.strip()
+            
+            # Basic validation - ensure translation isn't empty or error message
+            if (translated and 
+                len(translated) > 5 and 
+                not translated.lower().startswith(("translation failed", "i cannot", "error"))):
+                return translated
+                
+        except Exception:
+            if attempt == 2:
+                break
+
+    # Final fallback - return original text
+    return text
