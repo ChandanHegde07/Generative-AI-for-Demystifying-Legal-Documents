@@ -241,16 +241,51 @@ def ask_gemini(question: str, context: str, language: str = "English", doc_type:
 def summarize_text(text: str, doc_type: str = "") -> str:
     if not text:
         return "No content to summarize."
-    prompt = f"Summarize this {doc_type} document: {text[:8000]}"
+    prompt = f"""
+    Create a comprehensive summary of this {doc_type} document.
+    Document: {text[:8000]}
+    Structure your summary with:
+    1. Document Overview (what type of document and main purpose)
+    2. Key Points (most important information)
+    3. Important Details (dates, amounts, requirements)
+    4. Action Items (what the reader needs to do)
+    Keep it detailed but easy to understand.
+    """
     try:
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        return f"Summary failed: {str(e)}"
+        return f"Document summary failed: {str(e)}"
+
+# RE-ADDED: The simplify_text function
+def simplify_text(text: str, doc_type: str = "") -> str:
+    """Simplify complex legal/medical text into plain language."""
+    if not text:
+        return "No content to simplify."
+
+    domain_note = f" Focus on {doc_type} terminology and concepts." if doc_type else ""
+
+    prompt = f"""
+    Simplify the following text into plain, user-friendly language that anyone can understand.
+    {domain_note}
+    
+    Guidelines:
+    - Replace legal/medical jargon with everyday words
+    - Break down complex sentences into simpler ones
+    - Explain what things mean in practical terms
+    - Keep the important information but make it accessible
+    
+    Text to simplify: {text[:6000]}
+    """
+    
+    try:
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        return f"Text simplification failed: {str(e)}"
 
 
 # ----------------- Translation -----------------
-# ----------------- Enhanced Translation with Retry Logic -----------------
 def translate_text(text, target_language: str):
     """
     Enhanced translation with better error handling and retry logic.
@@ -263,14 +298,14 @@ def translate_text(text, target_language: str):
     if text is None:
         return None
         
-    lang_map = {"English": "en", "Hindi": "hi", "Kannada": "kn"}
+    lang_map = {"English": "en", "Hindi": "hi", "Kannada": "kn", "Spanish": "es"} # Added Spanish
     
     # Handle dict
     if isinstance(text, dict):
         translated_dict = {}
         for k, v in text.items():
             try:
-                if v and str(v).strip() and not str(v).lower() in ['n/a', 'not found', 'not available']:
+                if v and str(v).strip() and not str(v).lower() in ['n/a', 'not found', 'not available', 'not specified']:
                     translated_dict[k] = translate_text(v, target_language)
                 else:
                     translated_dict[k] = v  # Keep original for empty/N/A values
