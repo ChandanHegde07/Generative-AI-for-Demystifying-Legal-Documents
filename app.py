@@ -467,8 +467,8 @@ if not st.session_state.document_processed:
             st.session_state.uploaded_files_key = 0
         
         uploaded_files = st.file_uploader(
-            "Drag and drop your PDF(s) here",
-            type=["pdf"],
+            "Drag and drop your PDF(s), JPEGs, or PNGs here",
+            type=["pdf", "jpg", "jpeg", "png"],
             accept_multiple_files=True,
             key=f"file_uploader_initial_{st.session_state.uploaded_files_key}", # Dynamic key
             label_visibility="collapsed" # Hide the default Streamlit label
@@ -482,17 +482,17 @@ if not st.session_state.document_processed:
         with lang_col_center_inner:
             st.session_state.lang = st.selectbox(
                 "Select Language for AI Responses",
-                ["English", "Hindi", "Kannada", "Spanish"],
+                ["English", "Hindi", "Kannada"],
                 key="lang_select_initial",
                 label_visibility="collapsed",
-                index=["English", "Hindi", "Kannada", "Spanish"].index(st.session_state.lang) # Retain language choice
+                index=["English", "Hindi", "Kannada"].index(st.session_state.lang) if st.session_state.lang in ["English", "Hindi", "Kannada"] else 0
             )
         
         # General guidance message below both elements
         st.markdown(
             "<p style='text-align: center; margin-top: 2em; color: #A0A0B5; font-size: 1.1em;'>"
-            "Upload **one or more** legal documents (PDFs) above. "
-            "Our AI will extract and **combine their content for comprehensive analysis** and interaction."
+            "Upload <strong>one or more</strong> legal documents (PDF, JPEG, or PNG) above. "
+            "Our AI will extract and <strong>combine their content for comprehensive analysis</strong> and interaction."
             "</p>", unsafe_allow_html=True
         )
 
@@ -529,10 +529,10 @@ else:
         st.markdown("<span style='color: #E0E0F0; margin-right: 10px; font-weight: 600;'>🌐 Language:</span>", unsafe_allow_html=True)
         st.session_state.lang = st.selectbox(
             "Answer Language",
-            ["English", "Hindi", "Kannada", "Spanish"],
+            ["English", "Hindi", "Kannada"],
             key="lang_select_persistent",
             label_visibility="collapsed",
-            index=["English", "Hindi", "Kannada", "Spanish"].index(st.session_state.lang) # Set initial value
+            index=["English", "Hindi", "Kannada"].index(st.session_state.lang) if st.session_state.lang in ["English", "Hindi", "Kannada"] else 0
         )
     with header_col_reset:
         if st.button("🔄 Start Over / Upload New Document", on_click=reset_app_state, use_container_width=True, key="btn_new_document"):
@@ -562,38 +562,38 @@ else:
         with col1:
             if st.button("📌 Extract Key Information", use_container_width=True, key="btn_key_info"):
                 with st.spinner("Extracting key entities..."):
-                    result = extract_key_entities(document_text, doc_type)
+                    result = extract_key_entities(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["key_info"] = {"type": "success", "header": "Key Information Extracted Successfully!", "content": result}
                 st.rerun()
 
             if st.button("⚠️ Risk Assessment", use_container_width=True, key="btn_risk_assessment"):
                 with st.spinner("Performing risk assessment..."):
-                    result = risk_assessment(document_text, doc_type)
+                    result = risk_assessment(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["risk_assessment"] = {"type": "warning", "header": "Risk Assessment Complete:", "content": result}
                 st.rerun()
 
             if st.button("📚 Explain Complex Terms", use_container_width=True, key="btn_explain_terms"):
                 with st.spinner("Explaining complex terms..."):
-                    result = explain_complex_terms(document_text, doc_type)
+                    result = explain_complex_terms(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["explain_terms"] = {"type": "info", "header": "Complex Terms Explained:", "content": result}
                 st.rerun()
 
         with col2:
             if st.button("📝 Generate Compliance Checklist", use_container_width=True, key="btn_checklist"):
                 with st.spinner("Generating compliance checklist..."):
-                    result = generate_compliance_checklist(document_text, doc_type)
+                    result = generate_compliance_checklist(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["compliance_checklist"] = {"type": "success", "header": "Compliance Checklist Generated:", "content": result}
                 st.rerun()
 
             if st.button("📖 Summarize Document", use_container_width=True, key="btn_summarize"):
                 with st.spinner("Summarizing document..."):
-                    result = summarize_text(document_text, doc_type)
+                    result = summarize_text(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["summarize_document"] = {"type": "success", "header": "Document Summarized:", "content": result}
                 st.rerun()
 
             if st.button("🔄 Simplify Document", use_container_width=True, key="btn_simplify"):
                 with st.spinner("Simplifying text..."):
-                    result = simplify_text(document_text, doc_type)
+                    result = simplify_text(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["simplify_document"] = {"type": "info", "header": "Document Simplified (Plain Language):", "content": result}
                 st.rerun()
         
@@ -631,7 +631,7 @@ else:
                     st.session_state.chat_history.append({"role": "user", "content": user_input})
                     
                     with st.spinner("🤖 Processing your query..."):
-                        response = ask_gemini(user_input, document_text, language=st.session_state.lang, doc_type=doc_type) # Use st.session_state.lang
+                        response = ask_gemini(user_input, document_text, language=st.session_state.lang, doc_type=doc_type)
                         st.session_state.chat_history.append({"role": "ai", "content": response})
                     st.rerun()
                 else:
@@ -643,6 +643,6 @@ else:
 # -------------------------------
 st.markdown("""
 <div class="footer">
-    © 2025 AI Legal Document Assistant. Powered by Google GenAI Hackathon. All rights reserved.
+    AI Legal Document Assistant.
 </div>
 """, unsafe_allow_html=True)

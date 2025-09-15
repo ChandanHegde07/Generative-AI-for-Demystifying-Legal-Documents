@@ -22,15 +22,12 @@ if not API_KEY:
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-
 # ----------------- Document Extraction -----------------
 def extract_text_from_files(uploaded_files) -> str:
     """Extract text from PDFs and images with OCR fallback."""
     all_text = ""
     for file in uploaded_files:
         text = ""
-
-        # ---------- PDF Handling ----------
         if file.name.lower().endswith(".pdf"):
             try:
                 reader = PdfReader(file)
@@ -50,7 +47,6 @@ def extract_text_from_files(uploaded_files) -> str:
                 except Exception as e:
                     text = f"[OCR failed: {e}]"
 
-        # ---------- Image Handling ----------
         elif file.name.lower().endswith((".jpg", ".jpeg", ".png")) and OCR_ENABLED:
             try:
                 file.seek(0)
@@ -65,14 +61,12 @@ def extract_text_from_files(uploaded_files) -> str:
         all_text += text.strip() + "\n\n--- End of Document ---\n\n"
     return all_text.strip()
 
-
 # ----------------- Helpers -----------------
 def is_meaningful_content(text: str) -> bool:
     """Check if extracted content is meaningful."""
     if not text or text.strip() == "":
         return False
     text_lower = text.lower().strip()
-
     empty_patterns = [
         "**", "*", "not specified", "not mentioned", "not found",
         "not available", "no information", "details not provided",
@@ -81,61 +75,34 @@ def is_meaningful_content(text: str) -> bool:
     for pattern in empty_patterns:
         if text_lower == pattern or text_lower.startswith(pattern):
             return False
-
     meaningful_text = text_lower.replace("*", "").replace(" ", "").replace("-", "").replace("•", "")
-    if len(meaningful_text) < 15:
-        return False
-    return True
+    return len(meaningful_text) >= 15
 
+# ----------------- Translation -----------------
+from langdetect import detect
 
-# ----------------- Structured Entity Extraction -----------------
-def extract_key_entities(text: str, doc_type: str) -> dict:
-    """Extract structured key entities as dictionary instead of free text."""
-    entity_prompts = {
-        "Medical Policy": """
-        Extract these medical policy elements (return "N/A" if not found):
-        Coverage Details, Premium Information, Deductibles and Co-payments,
-        Exclusions, Claim Procedures, Network Providers, Policy Terms, Waiting Periods
-        """,
-        "Medical Report": """
-        Extract these discharge summary/medical report elements (return "N/A" if not found):
-        Diagnosis, Medications, Procedures, Follow-up Instructions, Warning Signs, Lifestyle Advice
-        """,
-        "Legal Contract": """
-        Extract these contract elements (return "N/A" if not found):
-        Parties Involved, Contract Duration, Payment Terms, Obligations,
-        Termination Clauses, Penalties, Governing Law
-        """
-    }
+def translate_text(text, target_language: str):
+    """Translate text to target language using Gemini and optionally Google Translate."""
+    if not text or target_language == "English":
+        return text
+    try:
+        source_lang = detect(text)
+    except:
+        source_lang = "en"
 
-    base_prompt = entity_prompts.get(doc_type.split('/')[0], "Extract key information:")
+    if target_language.lower()[:2] == source_lang.lower()[:2]:
+        return text
 
-    prompt = f"""
-    {base_prompt}
-
-    Document: {text[:4000]}
-
-    Format as:
-    Category: Information (or "N/A" if not found)
-    """
-
+    lang_map = {"English": "en", "Hindi": "hi", "Kannada": "kn"}
+    prompt = f"Translate the following text to {target_language} without changing formatting or meaning:\n\n{text[:4000]}"
     try:
         response = model.generate_content(prompt)
-        result = {}
-        for line in response.text.strip().split('\n'):
-            if ':' in line:
-                key, value = line.split(':', 1)
-                key, value = key.strip(), value.strip()
-                if is_meaningful_content(value):
-                    result[key] = value
-        return result
-    except Exception as e:
-        return {"Error": f"Key entity extraction failed: {str(e)}"}
-
+        return response.text.strip()
+    except Exception:
+        return text
 
 # ----------------- Document Type Detection -----------------
 def detect_document_type(text: str) -> str:
-    """Detect the type of document using Gemini."""
     prompt = f"""
     Analyze this document and classify it into one of these categories:
     - Legal Contract/Agreement
@@ -156,237 +123,78 @@ def detect_document_type(text: str) -> str:
     except Exception as e:
         return f"Document Classification (Error: {str(e)})"
 
-
-# ----------------- Checklist -----------------
-def generate_compliance_checklist(text: str, doc_type: str) -> list:
-    """Generate a compliance or action checklist as list of items."""
-    prompt = f"""
-    Create a practical checklist based on this {doc_type} document.
-    Document: {text[:4000]}
-    Format each item as a short bullet point.
-    """
+# ----------------- Key Entity Extraction -----------------
+def extract_key_entities(text: str, doc_type: str = "", language: str = "English") -> str:
+    entity_prompts = {
+        "Medical Policy": "Coverage Details, Premium Information, Deductibles, Exclusions, Claim Procedures, Network Providers, Policy Terms, Waiting Periods",
+        "Medical Report": "Diagnosis, Medications, Procedures, Follow-up Instructions, Warning Signs, Lifestyle Advice",
+        "Legal Contract": "Parties Involved, Contract Duration, Payment Terms, Obligations, Termination Clauses, Penalties, Governing Law"
+    }
+    base_prompt = entity_prompts.get(doc_type.split('/')[0], "Extract key information:")
+    prompt = f"{base_prompt}\nDocument: {text[:4000]}\nFormat as markdown with headings."
     try:
-        response = model.generate_content(prompt)
-        items = []
-        for line in response.text.strip().split("\n"):
-            line = line.strip("-• ").strip()
-            if len(line) > 5:
-                items.append(line)
-        return items
+        result = model.generate_content(prompt).text.strip()
+        return translate_text(result, language) if language != "English" else result
     except Exception as e:
-        return [f"Checklist generation failed: {str(e)}"]
+        return f"Key entity extraction failed: {str(e)}"
 
+# ----------------- Compliance Checklist -----------------
+def generate_compliance_checklist(text: str, doc_type: str = "", language: str = "English") -> str:
+    prompt = f"Create a practical compliance checklist for this {doc_type} document:\n{text[:4000]}\nFormat as numbered list."
+    try:
+        result = model.generate_content(prompt).text.strip()
+        return translate_text(result, language) if language != "English" else result
+    except Exception as e:
+        return f"Checklist generation failed: {str(e)}"
 
 # ----------------- Risk Assessment -----------------
-def risk_assessment(text: str, doc_type: str) -> list:
-    """Assess potential risks or considerations as list of items."""
-    prompt = f"""
-    Identify potential risks, concerns, or limitations in this {doc_type} document.
-    Document: {text[:4000]}
-    Format each risk as a short bullet point.
-    """
+def risk_assessment(text: str, doc_type: str = "", language: str = "English") -> str:
+    prompt = f"Identify potential risks, concerns, or limitations in this {doc_type} document:\n{text[:4000]}"
     try:
-        response = model.generate_content(prompt)
-        risks = []
-        for line in response.text.strip().split("\n"):
-            line = line.strip("-• ").strip()
-            if len(line) > 5:
-                risks.append(line)
-        return risks
+        result = model.generate_content(prompt).text.strip()
+        return translate_text(result, language) if language != "English" else result
     except Exception as e:
-        return [f"Risk assessment failed: {str(e)}"]
+        return f"Risk assessment failed: {str(e)}"
 
-
-# ----------------- Terms Explanation -----------------
-def explain_complex_terms(text: str, doc_type: str) -> str:
-    """Explain complex terms in simple language."""
-    prompt = f"""
-    Identify complex terms in this {doc_type} document and explain them in plain language.
-    Document: {text[:4000]}
-    Format as:
-    **[Term]**: explanation
-    """
+# ----------------- Explain Complex Terms -----------------
+def explain_complex_terms(text: str, doc_type: str = "", language: str = "English") -> str:
+    prompt = f"Explain complex terms in this {doc_type} document in simple language:\n{text[:4000]}"
     try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        result = model.generate_content(prompt).text.strip()
+        return translate_text(result, language) if language != "English" else result
     except Exception as e:
         return f"Term explanation failed: {str(e)}"
 
-
 # ----------------- Q&A -----------------
 def ask_gemini(question: str, context: str, language: str = "English", doc_type: str = "") -> str:
-    """Ask Gemini a question with domain context."""
     if not context:
-        return "No content extracted from the documents."
-
+        return translate_text("No content extracted from the documents.", language)
     domain_context = f"You are an expert in {doc_type} documents. " if doc_type else ""
-
-    prompt = f"""
-    {domain_context}
-    Document Type: {doc_type}
-    Document Context: {context[:12000]}
-
-    User Question: {question}
-
-    Answer in {language}.
-    """
+    prompt = f"{domain_context}Document Type: {doc_type}\nContext: {context[:12000]}\nQuestion: {question}\nAnswer in {language if language != 'English' else 'English'}."
     try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        result = model.generate_content(prompt).text.strip()
+        return translate_text(result, language) if language != "English" else result
     except Exception as e:
-        return f"Q&A failed: {str(e)}"
+        return translate_text(f"Q&A failed: {str(e)}", language) if language != "English" else f"Q&A failed: {str(e)}"
 
-
-# ----------------- Simplify & Summarize -----------------
-def summarize_text(text: str, doc_type: str = "") -> str:
+# ----------------- Summarize -----------------
+def summarize_text(text: str, doc_type: str = "", language: str = "English") -> str:
     if not text:
-        return "No content to summarize."
-    prompt = f"""
-    Create a comprehensive summary of this {doc_type} document.
-    Document: {text[:8000]}
-    Structure your summary with:
-    1. Document Overview (what type of document and main purpose)
-    2. Key Points (most important information)
-    3. Important Details (dates, amounts, requirements)
-    4. Action Items (what the reader needs to do)
-    Keep it detailed but easy to understand.
-    """
+        return translate_text("No content to summarize.", language)
+    prompt = f"Summarize this {doc_type} document with key points and action items:\n{text[:8000]}"
     try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        result = model.generate_content(prompt).text.strip()
+        return translate_text(result, language) if language != "English" else result
     except Exception as e:
-        return f"Document summary failed: {str(e)}"
+        return translate_text(f"Document summary failed: {str(e)}", language) if language != "English" else f"Document summary failed: {str(e)}"
 
-# RE-ADDED: The simplify_text function
-def simplify_text(text: str, doc_type: str = "") -> str:
-    """Simplify complex legal/medical text into plain language."""
+# ----------------- Simplify -----------------
+def simplify_text(text: str, doc_type: str = "", language: str = "English") -> str:
     if not text:
-        return "No content to simplify."
-
-    domain_note = f" Focus on {doc_type} terminology and concepts." if doc_type else ""
-
-    prompt = f"""
-    Simplify the following text into plain, user-friendly language that anyone can understand.
-    {domain_note}
-    
-    Guidelines:
-    - Replace legal/medical jargon with everyday words
-    - Break down complex sentences into simpler ones
-    - Explain what things mean in practical terms
-    - Keep the important information but make it accessible
-    
-    Text to simplify: {text[:6000]}
-    """
-    
+        return translate_text("No content to simplify.", language)
+    prompt = f"Simplify this {doc_type} document into plain language:\n{text[:6000]}"
     try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        result = model.generate_content(prompt).text.strip()
+        return translate_text(result, language) if language != "English" else result
     except Exception as e:
-        return f"Text simplification failed: {str(e)}"
-
-
-# ----------------- Translation -----------------
-def translate_text(text, target_language: str):
-    """
-    Enhanced translation with better error handling and retry logic.
-    Translate text, dict, or list into the selected language.
-    """
-    if not text or target_language == "English":
-        return text
-
-    # Handle None or empty inputs
-    if text is None:
-        return None
-        
-    lang_map = {"English": "en", "Hindi": "hi", "Kannada": "kn", "Spanish": "es"} # Added Spanish
-    
-    # Handle dict
-    if isinstance(text, dict):
-        translated_dict = {}
-        for k, v in text.items():
-            try:
-                if v and str(v).strip() and not str(v).lower() in ['n/a', 'not found', 'not available', 'not specified']:
-                    translated_dict[k] = translate_text(v, target_language)
-                else:
-                    translated_dict[k] = v  # Keep original for empty/N/A values
-            except Exception:
-                translated_dict[k] = v  # Keep original on failure
-        return translated_dict
-
-    # Handle list
-    if isinstance(text, list):
-        translated_list = []
-        for item in text:
-            try:
-                if item and str(item).strip():
-                    translated_list.append(translate_text(item, target_language))
-                else:
-                    translated_list.append(item)
-            except Exception:
-                translated_list.append(item)  # Keep original on failure
-        return translated_list
-
-    # Handle string
-    text_str = str(text).strip()
-    if not text_str or text_str.lower() in ['n/a', 'not found', 'not available', 'not specified']:
-        return text
-        
-    # Try Google Cloud Translation first (if available)
-    if OCR_ENABLED:
-        for attempt in range(3):
-            try:
-                translate_client = translate.Client()
-                target = lang_map.get(target_language, "en")
-                
-                # Split long text into chunks to avoid API limits
-                if len(text_str) > 5000:
-                    chunks = [text_str[i:i+4000] for i in range(0, len(text_str), 4000)]
-                    translated_chunks = []
-                    for chunk in chunks:
-                        if chunk.strip():
-                            result = translate_client.translate(chunk, target_language=target)
-                            translated_chunks.append(result["translatedText"])
-                        else:
-                            translated_chunks.append(chunk)
-                    return " ".join(translated_chunks)
-                else:
-                    result = translate_client.translate(text_str, target_language=target)
-                    return result["translatedText"]
-            except Exception:
-                if attempt == 2:
-                    break
-
-    # Fallback: Gemini translation with retry logic
-    for attempt in range(3):
-        try:
-            # Enhanced prompt for better translation quality
-            prompt = f"""
-            Translate the following text from English to {target_language}.
-            Rules:
-            1. Maintain the original structure, formatting, and meaning
-            2. Keep medical/legal terminology accurate
-            3. Preserve any formatting like **bold** or bullet points
-            4. If there are technical terms that don't have direct translations, provide the closest equivalent
-            5. Do not add explanations, just provide the translation
-            
-            Text to translate:
-            {text_str[:8000]}
-            
-            Translation:
-            """
-            
-            response = model.generate_content(prompt)
-            translated = response.text.strip()
-            
-            # Basic validation - ensure translation isn't empty or error message
-            if (translated and 
-                len(translated) > 5 and 
-                not translated.lower().startswith(("translation failed", "i cannot", "error"))):
-                return translated
-                
-        except Exception:
-            if attempt == 2:
-                break
-
-    # Final fallback - return original text
-    return text
+        return translate_text(f"Text simplification failed: {str(e)}", language) if language != "English" else f"Text simplification failed: {str(e)}"
