@@ -14,26 +14,45 @@ This project is an AI-powered assistant designed to simplify and analyze complex
 - **Interactive Web UI** – Streamlit-based interface for a user-friendly experience.  
 
 ---
+# Project Tech Stack
 
-## Tech Stack
+This document outlines the core technologies and libraries used in this project.
 
-- **Frontend Framework** : Streamlit (for building the web application UI).
+## Overview
 
-- **Core AI/ML** : Google Gemini API (specifically using the gemini-1.5-flash model for various generative AI tasks like document type detection, entity extraction, checklist generation, risk assessment, term explanation, Q&A, summarization, and simplification).
+This project leverages a combination of a web application framework, advanced AI/ML capabilities, and specialized document processing tools to provide its functionality.
 
-- **Document Processing** :
+## Core Technologies
 
-- **pypdf** : For extracting text from PDF documents.
+*   **Frontend Framework:**
+    *   **Streamlit**: Utilized for building the interactive web application user interface, allowing for rapid development and deployment of data apps.
 
-- **Google Cloud Vision API (Optional)** (for OCR on PDFs and images like JPG, JPEG, PNG, if OCR_ENABLED is true).
+*   **Core AI/ML:**
+    *   **Google Gemini API**: Powers the project's generative AI features, specifically using the `gemini-1.5-flash` model. This enables functionalities such as:
+        *   Document type detection
+        *   Key entity extraction
+        *   Compliance checklist generation
+        *   Risk assessment
+        *   Explanation of complex terms
+        *   Question and Answering (Q&A)
+        *   Text summarization
+        *   Text simplification
 
-- **Translation (Optional)** : Google Cloud Translation API (for language translation, if OCR_ENABLED is true).
+*   **Document Processing:**
+    *   **`pypdf`**: A Python library used for extracting text content from PDF documents.
+    *   **Google Cloud Vision API (Optional)**: When enabled (`OCR_ENABLED`), this API provides Optical Character Recognition (OCR) capabilities for extracting text from both scanned PDFs and image files (JPG, JPEG, PNG).
 
-- **Environment Management** : python-dotenv (for loading environment variables from a .env file).
+*   **Translation (Optional):**
+    *   **Google Cloud Translation API (Optional)**: When enabled (`OCR_ENABLED`), this API is used for accurate language translation of text content.
 
-- **Programming Language** : Python.
+*   **Environment Management:**
+    *   **`python-dotenv`**: A Python library responsible for loading environment variables from a `.env` file, ensuring sensitive information like API keys are kept separate from the codebase.
 
-- **Module for File Paths** : pathlib (Python's standard library for object-oriented filesystem paths). 
+*   **Programming Language:**
+    *   **Python**: The primary programming language used for developing all components of this project.
+
+*   **File Path Management:**
+    *   **`pathlib`**: Python's standard library module for working with filesystem paths in an object-oriented manner.
 
 ---
 
