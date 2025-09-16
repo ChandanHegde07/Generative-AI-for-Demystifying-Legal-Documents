@@ -71,7 +71,7 @@ With more time, the project could expand to include:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-repo/legal-ai-assistant.git
+    git clone https://github.com/ChandanHegde07/Generative-AI-for-Demystifying-Legal-Documents.git
     cd legal-ai-assistant
     ```
 2.  **Create a virtual environment (recommended):**
@@ -84,7 +84,7 @@ With more time, the project could expand to include:
     pip install -r requirements.txt
     ```
 4.  **Configure API Key:**
-    Create a `.env` file in the root directory (`legal-ai-assistant/.env`) and add your Google Gemini API key:
+    Create a `.env` file in the root directory (`https://github.com/ChandanHegde07/Generative-AI-for-Demystifying-Legal-Documents.git/.env`) and add your Google Gemini API key:
     ```
     GOOGLE_API_KEY="YOUR_GEMINI_API_KEY_HERE"
     ```
