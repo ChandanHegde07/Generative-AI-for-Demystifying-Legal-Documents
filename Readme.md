@@ -85,7 +85,7 @@ With more time, the project could expand to include:
     ```
     *(Note: If you plan to use Google Cloud Vision/Translate for OCR, uncomment `google-cloud-vision` and `google-cloud-translate` in `requirements.txt` and install them. You will also need to set up Google Cloud credentials for these services.)*
 4.  **Configure API Key:**
-    Create a `.env` file in the root directory (`legal-ai-assistant/.env`) and add your Google Gemini API key:
+    Create a `.env` file in the root directory (`https://github.com/ChandanHegde07/Generative-AI-for-Demystifying-Legal-Documents.git/.env`) and add your Google Gemini API key:
     ```
     GOOGLE_API_KEY="YOUR_GEMINI_API_KEY_HERE"
     ```
