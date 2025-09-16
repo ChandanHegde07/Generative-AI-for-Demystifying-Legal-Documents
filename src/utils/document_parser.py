@@ -1,8 +1,10 @@
 from pypdf import PdfReader
-from src.config import OCR_ENABLED, VISION_CLIENT
+# Removed imports for OCR_ENABLED, VISION_CLIENT as they are no longer used here for actual OCR.
+# However, to avoid import errors if config still defined them, we keep the original import structure but rely on False/None from config.
+from src.config import OCR_ENABLED, VISION_CLIENT # Keeping for structural consistency, but behavior relies on config.py now setting them to False/None
 
 def extract_text_from_files(uploaded_files) -> str:
-    """Extract text from PDFs and images with OCR fallback."""
+    """Extract text from PDFs using pypdf. Image files will not be processed for text."""
     all_text = ""
     for file in uploaded_files:
         text = ""
@@ -13,53 +15,23 @@ def extract_text_from_files(uploaded_files) -> str:
                 reader = PdfReader(file)
                 for page in reader.pages:
                     text += page.extract_text() or ""
-            except Exception as e:
-                print(f"Error reading PDF with pypdf: {e}")
-                pass # Try OCR if pypdf fails or extracts no text
-
-            if OCR_ENABLED and not text.strip() and VISION_CLIENT:
-                print(f"No text extracted by pypdf for {file.name}, attempting OCR...")
-                try:
-                    file.seek(0) # Reset file pointer for OCR
-                    content = file.read()
-                    image = VISION_CLIENT.document_text_detection(image=VISION_CLIENT.image(content=content))
-                    text = image.full_text_annotation.text if image.text_annotations else ""
-                    if text.strip():
-                        print(f"OCR successfully extracted text from {file.name}.")
-                    else:
-                        print(f"OCR also failed to extract meaningful text from {file.name}.")
-                except Exception as e:
-                    text = f"[OCR for PDF failed: {e}]"
+                if not text.strip():
+                    text = f"[No selectable text found in PDF: {file.name}. OCR functionality is disabled.]"
                     print(text)
-            elif OCR_ENABLED and not VISION_CLIENT:
-                print("OCR is enabled, but Google Cloud Vision client is not initialized.")
-
+            except Exception as e:
+                text = f"[Error reading PDF {file.name}: {e}. OCR functionality is disabled.]"
+                print(text)
 
         elif file_extension.endswith((".jpg", ".jpeg", ".png")):
-            if OCR_ENABLED and VISION_CLIENT:
-                try:
-                    file.seek(0) # Reset file pointer for OCR
-                    content = file.read()
-                    image = VISION_CLIENT.document_text_detection(image=VISION_CLIENT.image(content=content))
-                    text = image.full_text_annotation.text if image.text_annotations else ""
-                    if text.strip():
-                        print(f"OCR successfully extracted text from {file.name}.")
-                    else:
-                        print(f"OCR failed to extract meaningful text from {file.name}.")
-                except Exception as e:
-                    text = f"[Image OCR failed: {e}]"
-                    print(text)
-            elif OCR_ENABLED and not VISION_CLIENT:
-                text = "[Image files require Google Cloud Vision for text extraction, but client is not initialized.]"
-                print(text)
-            else:
-                text = "[Image files require Google Cloud Vision for text extraction. OCR is disabled.]"
-                print(text)
+            text = f"[Text extraction from image files ({file.name}) is disabled as Google Cloud Vision OCR is not configured.]"
+            print(text)
         
-        # Only add meaningful text to all_text
-        if text.strip():
+        if text.strip() and not text.startswith("["): # Only add meaningful extracted text
             all_text += text.strip() + "\n\n--- End of Document ---\n\n"
+        elif text.startswith("["): # Add status messages for user feedback
+             all_text += text.strip() + "\n\n--- End of Document ---\n\n"
         else:
             all_text += f"[Could not extract any meaningful text from {file.name}]\n\n--- End of Document ---\n\n"
+
 
     return all_text.strip()

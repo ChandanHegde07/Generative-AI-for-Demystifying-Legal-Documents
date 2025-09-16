@@ -58,11 +58,11 @@ With more time, the project could expand to include:
 -   `main.py`: Acts as a facade, importing and re-exporting core functions from the `src/` directory to maintain compatibility with `app.py`.
 -   `requirements.txt`: Lists all Python dependencies.
 -   `src/`: Contains the core logic, organized into sub-packages:
-    -   `config.py`: Handles API key loading, Gemini model initialization, and optional Google Cloud Vision/Translate client setup.
+    -   `config.py`: Handles API key loading and Gemini model initialization.
     -   `utils/`:
-        -   `document_parser.py`: Functions for extracting text from various file formats, including OCR fallback.
+        -   `document_parser.py`: Contains logic for extracting text from PDFs using `pypdf`. Image files (JPG, PNG) will not have text extracted.
         -   `helpers.py`: General utility functions (e.g., `is_meaningful_content`).
-        -   `translator.py`: Handles text translation using Gemini (and optionally Google Cloud Translate).
+        -   `translator.py`: Handles text translation using the Gemini model.
     -   `services/`:
         -   `ai_processor.py`: Implements all the AI-powered document analysis functions (e.g., entity extraction, summarization, risk assessment, document type detection, complex terms explanation, compliance checklist, simplification).
         -   `chat_service.py`: Dedicated service for handling conversational AI interactions (`ask_gemini`).
@@ -71,8 +71,8 @@ With more time, the project could expand to include:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/ChandanHegde07/Generative-AI-for-Demystifying-Legal-Documents.git
-    cd Generative-AI-for-Demystifying-Legal-Documents
+    git clone https://github.com/your-repo/legal-ai-assistant.git
+    cd legal-ai-assistant
     ```
 2.  **Create a virtual environment (recommended):**
     ```bash
@@ -83,21 +83,15 @@ With more time, the project could expand to include:
     ```bash
     pip install -r requirements.txt
     ```
-    *(Note: If you plan to use Google Cloud Vision/Translate for OCR, uncomment `google-cloud-vision` and `google-cloud-translate` in `requirements.txt` and install them. You will also need to set up Google Cloud credentials for these services.)*
 4.  **Configure API Key:**
-    Create a `.env` file in the root directory (`https://github.com/ChandanHegde07/Generative-AI-for-Demystifying-Legal-Documents.git/.env`) and add your Google Gemini API key:
+    Create a `.env` file in the root directory (`legal-ai-assistant/.env`) and add your Google Gemini API key:
     ```
     GOOGLE_API_KEY="YOUR_GEMINI_API_KEY_HERE"
-    ```
-    If using Google Cloud Vision/Translate, also set up your Google Application Credentials:
-    ```bash
-    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service_account_key.json"
     ```
 5.  **Run the Streamlit application:**
     ```bash
     streamlit run app.py
     ```
-    
 ## Authors
 - **Mukundh R Reddy**  
 - **Chandan Hegde**
