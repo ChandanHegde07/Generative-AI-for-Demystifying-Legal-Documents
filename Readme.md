@@ -97,16 +97,7 @@ With more time, the project could expand to include:
     ```bash
     streamlit run app.py
     ```
-
-## Usage
-
-1.  Upload one or more legal documents (PDF, JPG, PNG).
-2.  Select the desired language for AI responses.
-3.  Interact with the document through various tabs:
-    -   **Document View**: See the extracted text.
-    -   **Actions**: Perform specific analyses like key entity extraction, risk assessment, summarization, etc.
-    -   **Ask AI**: Chat with the AI assistant about your document.
-
+    
 ## Authors
 - **Mukundh R Reddy**  
 - **Chandan Hegde**
