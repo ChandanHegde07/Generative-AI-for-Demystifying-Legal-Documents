@@ -16,8 +16,24 @@ This project is an AI-powered assistant designed to simplify and analyze complex
 ---
 
 ## Tech Stack
-- **Streamlit** – Frontend web framework for interactive UI.  
-- **Python** – Core application logic and integrations.  
+
+- **Frontend Framework** : Streamlit (for building the web application UI).
+
+- **Core AI/ML** : Google Gemini API (specifically using the gemini-1.5-flash model for various generative AI tasks like document type detection, entity extraction, checklist generation, risk assessment, term explanation, Q&A, summarization, and simplification).
+
+- **Document Processing** :
+
+**pypdf** : For extracting text from PDF documents.
+
+**Google Cloud Vision API** (optional, for OCR on PDFs and images like JPG, JPEG, PNG, if OCR_ENABLED is true).
+
+**Translation (Optional)** : Google Cloud Translation API (for language translation, if OCR_ENABLED is true).
+
+- **Environment Management** : python-dotenv (for loading environment variables from a .env file).
+
+- **Programming Language** : Python.
+
+- **Module for File Paths** : pathlib (Python's standard library for object-oriented filesystem paths). 
 
 ---
 

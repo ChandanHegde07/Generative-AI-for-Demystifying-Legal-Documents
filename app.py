@@ -19,7 +19,7 @@ from main import (
 # Page Setup
 # -------------------------------
 st.set_page_config(
-    page_title="AI Legal Document Assistant",
+    page_title="Generative AI for Demystifying Healthcare Documents",
     page_icon="⚖️",
     layout="wide"
 )
@@ -63,7 +63,7 @@ div[data-testid="stFileUploader"] {
     background: #2A2A47; /* Darker background for uploader area */
     padding: 25px;
     margin-top: 25px;
-    margin-bottom: 35px;
+    margin-bottom: 1em; /* FURTHER REDUCED SPACE HERE */
     transition: all 0.3s ease-in-out;
     text-align: center;
     min-height: 200px; /* Give it more presence */
@@ -448,19 +448,21 @@ def reset_app_state():
 # -------------------------------
 # Header
 # -------------------------------
-st.markdown('<div class="app-header">⚖️ AI-Powered Legal Document Assistant</div>', unsafe_allow_html=True)
+st.markdown('<div class="app-header">⚖️ Generative AI for Demystifying Healthcare Documents</div>', unsafe_allow_html=True)
 
 # --- Conditional Rendering of Initial Upload vs. Document Interaction ---
 if not st.session_state.document_processed:
     # Initial "Get Started" screen
-    st.markdown("<h2 style='text-align: center; color: #E0E0F0; margin-bottom: 2em;'>Get Started: Upload Your Legal Document(s)</h2>", unsafe_allow_html=True)
+    # Reduced margin-bottom for "Get Started" header significantly
+    st.markdown("<h2 style='text-align: center; color: #E0E0F0; margin-bottom: 1em;'>Get Started: Upload Your Legal Document(s)</h2>", unsafe_allow_html=True)
 
     # Use a central column for better organization and centering
     _, center_col, _ = st.columns([1, 3, 1])
 
     with center_col:
         # Upload PDF(s) section (placed first, and centered within center_col)
-        st.markdown("### <div style='text-align: center; margin-bottom: 1em;'>📂 Upload PDF(s)</div>", unsafe_allow_html=True)
+        # Reduced margin-bottom for a tighter look
+        st.markdown("### <div style='text-align: center; margin-bottom: 0.2em;'>📂 Upload PDF(s)</div>", unsafe_allow_html=True)
         
         # We need a dynamic key for the file uploader to force a reset when needed
         if 'uploaded_files_key' not in st.session_state:
@@ -475,8 +477,9 @@ if not st.session_state.document_processed:
         )
 
         # Language selector section (placed below uploader, and centered within center_col)
-        st.markdown("---") # Visual separator
-        st.markdown("### <div style='text-align: center; margin-bottom: 0.5em;'>🌐 Answer Language</div>", unsafe_allow_html=True)
+        # REMOVED st.markdown("---") to reduce space
+        # Further reduced margin-top to bring it very close to the uploader
+        st.markdown("### <div style='text-align: center; margin-top: 0.7em; margin-bottom: 0.2em;'>🌐 Answer Language</div>", unsafe_allow_html=True)
         # To make the selectbox appear more centrally aligned if it doesn't take full width
         lang_col_left, lang_col_center_inner, lang_col_right = st.columns([0.5, 2, 0.5]) # Nested columns for selectbox
         with lang_col_center_inner:
@@ -489,8 +492,9 @@ if not st.session_state.document_processed:
             )
         
         # General guidance message below both elements
+        # Further reduced margin-top for a tighter layout
         st.markdown(
-            "<p style='text-align: center; margin-top: 2em; color: #A0A0B5; font-size: 1.1em;'>"
+            "<p style='text-align: center; margin-top: 1em; color: #A0A0B5; font-size: 1.1em;'>"
             "Upload <strong>one or more</strong> legal documents (PDF, JPEG, or PNG) above. "
             "Our AI will extract and <strong>combine their content for comprehensive analysis</strong> and interaction."
             "</p>", unsafe_allow_html=True
@@ -643,6 +647,6 @@ else:
 # -------------------------------
 st.markdown("""
 <div class="footer">
-    AI Legal Document Assistant.
+    Generative AI for Demystifying Healthcare Documents.
 </div>
 """, unsafe_allow_html=True)
