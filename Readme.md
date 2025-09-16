@@ -23,11 +23,11 @@ This project is an AI-powered assistant designed to simplify and analyze complex
 
 - **Document Processing** :
 
-**pypdf** : For extracting text from PDF documents.
+- **pypdf** : For extracting text from PDF documents.
 
-**Google Cloud Vision API** (optional, for OCR on PDFs and images like JPG, JPEG, PNG, if OCR_ENABLED is true).
+- **Google Cloud Vision API (Optional)** (for OCR on PDFs and images like JPG, JPEG, PNG, if OCR_ENABLED is true).
 
-**Translation (Optional)** : Google Cloud Translation API (for language translation, if OCR_ENABLED is true).
+- **Translation (Optional)** : Google Cloud Translation API (for language translation, if OCR_ENABLED is true).
 
 - **Environment Management** : python-dotenv (for loading environment variables from a .env file).
 
