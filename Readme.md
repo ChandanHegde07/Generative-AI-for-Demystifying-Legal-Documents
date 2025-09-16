@@ -16,9 +16,6 @@ This project is an AI-powered assistant designed to simplify and analyze complex
 ---
 
 ## Tech Stack
-- **Google Gemini API** – Generative AI model for healthcare document understanding.  
-- **Google Cloud Vision** – OCR support for scanned or handwritten medical PDFs.  
-- **Google Cloud Translate** – Multilingual translation capabilities, including major Indian languages.  
 - **Streamlit** – Frontend web framework for interactive UI.  
 - **Python** – Core application logic and integrations.  
 
