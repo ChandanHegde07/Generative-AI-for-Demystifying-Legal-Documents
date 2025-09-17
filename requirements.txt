@@ -1,5 +1,7 @@
 streamlit
 google-generativeai
-pypdf
+Pillow
 python-dotenv
+PyPDF2
+numpy
 pandas
