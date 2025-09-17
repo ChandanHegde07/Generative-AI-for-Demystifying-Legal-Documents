@@ -1,23 +1,19 @@
 import streamlit as st
-from pathlib import Path
-from main import extract_text_from_files as extract_text_from_pdfs
+from typing import List, Any
 
-# Assuming these functions are available in your main.py.
-from main import (
-    detect_document_type,
-    extract_key_entities,
-    generate_compliance_checklist,
-    explain_complex_terms,
-    risk_assessment,
-    ask_gemini,
-    simplify_text,
-    summarize_text,
-    translate_text, # Although not explicitly used in app.py logic, it's imported
-)
+from src.config import Config
+from src.services.ai_processor import AIProcessor
+from src.services.chat_service import ChatService
+from src.utils.document_parser import DocumentParser
+from src.utils.translator import GeminiTranslator
 
-# -------------------------------
-# Page Setup
-# -------------------------------
+doc_parser = DocumentParser()
+ai_processor = AIProcessor()
+chat_service = ChatService()
+gemini_translator = GeminiTranslator()
+
+SUPPORTED_LANGUAGES = Config.SUPPORTED_LANGUAGES
+
 st.set_page_config(
     page_title="Generative AI for Demystifying Healthcare Documents",
     page_icon="⚖️",
@@ -25,394 +21,231 @@ st.set_page_config(
 )
 
 # -------------------------------
-# Custom CSS for a modern, vibrant dark theme UI
-# New color palette:
-# Backgrounds: Deep space blues/purples
-# Primary Accent: Vibrant Teal/Aqua
-# Secondary Accent: Electric Purple
-# Text: Soft whites
+# Custom CSS for a modern, vibrant dark theme UI - AGGRESSIVELY REDUCED SPACING
 # -------------------------------
 st.markdown("""<style>
 /* Global styles */
 html, body, .main, .block-container {
-    background-color: #1A1A2E; /* Deep space blue/purple */
-    color: #E0E0F0; /* Soft off-white for primary text */
-    font-family: 'Inter', sans-serif; /* Modern, clean font */
-    line-height: 1.6;
+    background-color: #1A1A2E;
+    color: #E0E0F0;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.4; /* Further reduced line height */
     scroll-behavior: smooth;
 }
-p { margin-bottom: 1em; }
+p { margin-bottom: 0.4em; } /* Further reduced default paragraph margin */
 h1, h2, h3, h4, h5, h6 {
-    color: #FFFFFF; /* Pure white for headers */
+    color: #FFFFFF;
     font-weight: 700;
-    margin-top: 1.8em;
-    margin-bottom: 0.8em;
+    margin-top: 0.8em; /* Further reduced margin-top for headers */
+    margin-bottom: 0.3em; /* Further reduced margin-bottom for headers */
     letter-spacing: 0.5px;
 }
-strong { color: #FFFFFF; } /* Ensure bold text stands out */
+strong { color: #FFFFFF; }
 
-/* Sidebar styling - now we're explicitly hiding it if not used */
 [data-testid="stSidebar"] {
-    display: none; /* Hide the sidebar completely */
+    display: none;
 }
 
 /* File Uploader styling */
 div[data-testid="stFileUploader"] {
-    border: 2px dashed #00B4D8; /* Vibrant blue accent for dashed border */
-    border-radius: 12px;
-    background: #2A2A47; /* Darker background for uploader area */
-    padding: 25px;
-    margin-top: 25px;
-    margin-bottom: 1em; /* FURTHER REDUCED SPACE HERE */
-    transition: all 0.3s ease-in-out;
-    text-align: center;
-    min-height: 200px; /* Give it more presence */
-    display: flex; /* Flexbox for centering content */
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    border: 2px dashed #00B4D8;
+    border-radius: 10px; /* Slightly less rounded */
+    background: #2A2A47;
+    padding: 12px; /* Further reduced padding */
+    margin-top: 12px; /* Further reduced margin-top */
+    margin-bottom: 0.2em; /* Aggressively reduced margin-bottom */
+    min-height: 130px; /* Smaller height */
 }
 div[data-testid="stFileUploader"]:hover {
-    border-color: #6A05AD; /* Electric purple on hover */
+    border-color: #6A05AD;
     background: #303050;
-    box-shadow: 0 0 15px rgba(0, 180, 216, 0.3);
+    box-shadow: 0 0 8px rgba(0, 180, 216, 0.2); /* Reduced shadow */
 }
 .stFileUploader label {
-    color: #E0E0F0;
-    font-weight: 600;
-    font-size: 1.1em;
-    margin-bottom: 15px;
-    display: block;
+    font-size: 0.9em; /* Smaller font size */
+    margin-bottom: 6px; /* Reduced margin-bottom */
 }
-/* Specific targeting for the "Drag and drop files here" text */
-div[data-testid="stFileUploader"] .st-emotion-cache-1wmy9hp p {
-    color: #A0A0B5; /* Muted text for drag instructions */
-    font-size: 1.1em;
-    font-weight: 400;
-    margin-bottom: 0; /* Remove default paragraph margin */
-}
-/* Specific targeting for the "Limit 200MB per file • PDF" text */
-div[data-testid="stFileUploader"] .st-emotion-cache-1wmy9hp > div:last-of-type {
-    color: #70708A; /* Even more muted */
+div[data-testid="stFileUploader"] .st-emotion-cache-1wmy9hp p { /* "Drag and drop" text */
     font-size: 0.9em;
-    margin-top: 5px; /* Add some space from the drag text */
+    margin-bottom: 0;
+}
+div[data-testid="stFileUploader"] .st-emotion-cache-1wmy9hp > div:last-of-type { /* "Limit..." text */
+    font-size: 0.75em; /* Even smaller font size */
+    margin-top: 1px; /* Reduced margin-top */
 }
 
 .stFileUploader button {
-    background: linear-gradient(90deg, #6A05AD, #00B4D8) !important; /* Gradient for browse button */
-    border: none !important;
-    color: white !important;
-    padding: 10px 25px !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    margin-top: 15px;
-    transition: all 0.3s ease-in-out;
+    padding: 5px 15px !important; /* Further reduced padding */
+    margin-top: 6px; /* Further reduced margin-top */
+    font-size: 0.85em; /* Smaller font size */
 }
 .stFileUploader button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0px 4px 15px rgba(106, 5, 173, 0.4) !important;
+    transform: translateY(-1px);
+    box-shadow: 0px 2px 8px rgba(106, 5, 173, 0.25) !important; /* Reduced shadow */
 }
 
 /* New CSS for displaying uploaded file items */
 div[data-testid="stFileUploadProgress"] {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #353550; /* Darker background for the file item */
-    border-radius: 8px;
-    padding: 10px 15px;
-    margin-top: 15px; /* Space between files if multiple */
-    box-shadow: 0px 2px 8px rgba(0,0,0,0.3);
-    border: 1px solid #454560;
+    padding: 5px 8px; /* Reduced padding */
+    margin-top: 6px; /* Reduced margin-top */
+    font-size: 0.85em; /* Smaller font size */
 }
-
-div[data-testid="stFileUploadProgress"] div:first-child { /* Container for icon, name, size */
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #E0E0F0;
-    font-size: 1em;
+div[data-testid="stFileUploadProgress"] div:first-child {
+    gap: 5px; /* Reduced gap */
+    font-size: 0.85em;
 }
-
-div[data-testid="stFileUploadProgress"] svg { /* Icon */
-    color: #00B4D8; /* Vibrant blue for the document icon */
-    font-size: 1.2em;
+div[data-testid="stFileUploadProgress"] svg {
+    font-size: 0.9em;
 }
-
-div[data-testid="stFileUploadProgress"] span { /* File name and size text */
-    color: #E0E0F0;
-}
-
 button[data-testid="stFileUploaderClearButton"] {
-    background: linear-gradient(90deg, #6A05AD, #00B4D8) !important; /* Gradient for close button */
-    border: none !important;
-    color: white !important;
-    border-radius: 50% !important; /* Circular button */
-    width: 30px !important;
-    height: 30px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 1.2em !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    transition: all 0.2s ease-in-out;
-}
-
-button[data-testid="stFileUploaderClearButton"]:hover {
-    transform: scale(1.1);
-    box-shadow: 0px 0px 10px rgba(106, 5, 173, 0.6) !important;
+    width: 22px !important; /* Smaller size */
+    height: 22px !important;
+    font-size: 0.9em !important;
 }
 
 
 /* Header styling */
 .app-header {
+    padding: 20px; /* Adjusted padding for the box */
+    font-size: 32px; /* Made font size bigger */
+    margin-bottom: 30px; /* Increased margin-bottom */
+    gap: 10px; /* Adjusted gap */
     text-align: center;
-    padding: 30px 0;
-    background: linear-gradient(90deg, #6A05AD, #00B4D8); /* Electric purple to vibrant blue gradient */
-    border-radius: 18px; /* More rounded corners */
-    color: white;
-    font-size: 34px;
-    font-weight: 800;
-    margin-bottom: 50px;
-    letter-spacing: 1.5px;
-    box-shadow: 0px 10px 25px rgba(0,0,0,0.5); /* Stronger, deeper shadow */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
+    background-color: #2A2A47; /* Added background for the box */
+    border: 2px solid #00B4D8; /* Added border for the box */
+    border-radius: 15px; /* Added border-radius for rounded corners */
+    max-width: 800px; /* Constrain width for a box effect */
+    margin-left: auto; /* Center the box */
+    margin-right: auto; /* Center the box */
+    display: flex; /* Use flex to align icon and text */
+    align-items: center; /* Center items vertically */
+    justify-content: center; /* Center items horizontally */
 }
 .app-header svg {
-    font-size: 40px;
+    font-size: 34px; /* Adjusted icon size to match new font size */
+    margin-right: 10px; /* Space between icon and text */
 }
 
 /* Button styling */
 .stButton>button {
-    border-radius: 10px;
-    background: linear-gradient(90deg, #6A05AD, #00B4D8);
-    color: white;
-    border: none;
-    padding: 0.9em 2em;
-    font-weight: 600;
-    transition: all 0.3s ease-in-out;
-    letter-spacing: 0.7px;
-    box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
-    font-size: 1.1em;
-    margin-top: 15px;
-    margin-bottom: 15px;
+    padding: 0.6em 1.3em; /* Reduced padding */
+    font-size: 0.9em; /* Smaller font size */
+    margin-top: 6px; /* Reduced margin-top */
+    margin-bottom: 6px; /* Reduced margin-bottom */
 }
 .stButton>button:hover {
-    transform: translateY(-5px); /* More dynamic lift */
-    box-shadow: 0px 10px 25px rgba(106, 5, 173, 0.5); /* Enhanced hover shadow */
-    cursor: pointer;
-}
-.stButton > button:disabled {
-    background: #3A3A5E; /* Muted dark blue for disabled */
-    color: #A0A0B5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-    opacity: 0.7;
+    transform: translateY(-1px);
+    box-shadow: 0px 3px 10px rgba(106, 5, 173, 0.3);
 }
 
 /* Chat bubble styling */
-.chat-bubble-user {
-    background: #00B4D8; /* User message vibrant blue */
-    color: white;
-    padding: 16px 22px;
-    border-radius: 28px 28px 10px 28px; /* Organic, modern shape */
-    margin: 12px 0;
-    max-width: 70%;
-    align-self: flex-end;
-    box-shadow: 0px 3px 10px rgba(0,0,0,0.25);
-    margin-left: auto;
-    text-align: left;
-    font-size: 1.05em;
+.chat-bubble-user, .chat-bubble-ai {
+    padding: 10px 15px; /* Reduced padding */
+    border-radius: 18px 18px 7px 18px; /* Smaller radius */
+    margin: 6px 0; /* Reduced margin */
+    font-size: 0.9em; /* Smaller font size */
 }
 .chat-bubble-ai {
-    background: #2A2A47; /* AI message dark background */
-    color: #E0E0F0;
-    padding: 16px 22px;
-    border-radius: 28px 28px 28px 10px; /* Organic, modern shape */
-    margin: 12px 0;
-    max-width: 70%;
-    align-self: flex-start;
-    border: 1px solid #353550;
-    box-shadow: 0px 3px 10px rgba(0,0,0,0.15);
-    margin-right: auto;
-    text-align: left;
-    font-size: 1.05em;
-}
-div.stChatMessage {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    border-radius: 18px 18px 18px 7px; /* Smaller radius */
 }
 
 /* Tabs styling */
 .stTabs [data-testid="stTabContent"] {
-    padding: 2.5rem 0;
+    padding: 1rem 0; /* Further reduced padding */
 }
 .stTabs [data-testid="stTab"] {
-    background-color: #2A2A47; /* Dark background for inactive tabs */
-    color: #A0A0B5; /* Muted color for inactive tab text */
-    border-radius: 15px 15px 0 0; /* More rounded top corners */
-    margin-right: 12px;
-    padding: 18px 35px; /* Larger tabs for better click area */
-    border: 1px solid #353550;
-    border-bottom: none;
-    transition: all 0.3s ease-in-out;
-    font-weight: 600;
-    font-size: 1.15em;
-    letter-spacing: 0.3px;
-}
-.stTabs [data-testid="stTab"]:hover {
-    background-color: #303050;
-    color: #E0E0F0;
-    cursor: pointer;
+    margin-right: 6px; /* Reduced margin-right */
+    padding: 10px 20px; /* Reduced padding */
+    font-size: 1em; /* Smaller font size */
 }
 .stTabs [data-testid="stTab"][aria-selected="true"] {
-    background-color: #00B4D8; /* Primary accent color for selected tab */
-    color: white;
-    border: 1px solid #00B4D8;
-    font-weight: 700;
-    box-shadow: 0px -5px 15px rgba(0, 180, 216, 0.4);
-    position: relative;
-    z-index: 1;
+    box-shadow: 0px -2px 8px rgba(0, 180, 216, 0.25); /* Reduced shadow */
 }
 
 /* Input Fields (Selectbox, Text Input) styling */
 div[data-testid="stSelectbox"] > label,
 div[data-testid="stTextInput"] label {
-    color: #E0E0F0;
-    font-weight: 600;
-    margin-bottom: 10px;
-    font-size: 1.1em;
+    margin-bottom: 4px; /* Reduced margin-bottom */
+    font-size: 0.9em; /* Smaller font size */
 }
 
-/* Specific styling for selectbox widget */
 div[data-testid="stSelectbox"] div.st-emotion-cache-1wv8cff,
-div[data-testid="stSelectbox"] div.st-emotion-cache-1wv8cff > div { /* Target the actual select box wrapper */
-    background-color: #2A2A47;
-    border: 1px solid #353550;
-    border-radius: 8px;
-    color: #E0E0F0;
-    padding: 0.7em 1.3em;
-    transition: all 0.3s ease-in-out;
+div[data-testid="stSelectbox"] div.st-emotion-cache-1wv8cff > div {
+    padding: 0.4em 0.8em; /* Reduced padding */
 }
-div[data-testid="stSelectbox"] div.st-emotion-cache-1wv8cff:hover {
-    border-color: #00B4D8;
-    box-shadow: 0 0 0 0.15rem rgba(0, 180, 216, 0.25);
-}
-div[data-testid="stSelectbox"] .st-emotion-cache-1wv8cff > div > span {
-    color: #E0E0F0;
-}
-/* Dropdown arrow */
-div[data-testid="stSelectbox"] .st-emotion-cache-ch5d6d {
-    color: #6A05AD; /* Electric purple arrow */
-}
-
-
-/* Specific styling for text input fields */
 div[data-testid="stTextInput"] div.st-emotion-cache-1c7y2k2,
 div[data-testid="stTextInput"] div.st-emotion-cache-h5rpjc {
-    background-color: #2A2A47;
-    border: 1px solid #353550;
-    border-radius: 10px;
-    color: #E0E0F0;
-    padding: 0.7em 1.2em;
-    transition: all 0.3s ease-in-out;
+    padding: 0.4em 0.8em; /* Reduced padding */
 }
 div[data-testid="stTextInput"] textarea,
 div[data-testid="stTextInput"] input {
-    background-color: #2A2A47;
-    color: #E0E0F0;
-    border: none;
-    font-size: 1.05em;
-}
-div[data-testid="stTextInput"] div.st-emotion-cache-1c7y2k2:focus-within,
-div[data-testid="stTextInput"] div.st-emotion-cache-h5rpjc:focus-within {
-    border-color: #00B4D8;
-    box-shadow: 0 0 0 0.2rem rgba(0, 180, 216, 0.35);
+    font-size: 0.9em; /* Smaller font size */
 }
 
 /* Status messages (success, info, warning, error) */
 .stAlert {
-    border-radius: 10px;
-    padding: 20px 25px;
-    margin-bottom: 25px;
-    font-size: 1.05em;
-    line-height: 1.5;
-    box-shadow: 0px 2px 8px rgba(0,0,0,0.2);
-}
-.stAlert.success {
-    background-color: #284A4A; /* Dark green-blue */
-    color: #64FFDA; /* Vibrant light green */
-    border-left: 6px solid #1DE9B6;
-}
-.stAlert.info {
-    background-color: #2A444D; /* Darker blue */
-    color: #80ED99; /* Light green-blue */
-    border-left: 6px solid #00B4D8;
-}
-.stAlert.warning {
-    background-color: #4A402A; /* Dark yellow-brown */
-    color: #FFDA64; /* Vibrant yellow */
-    border-left: 6px solid #FFC107;
-}
-.stAlert.error {
-    background-color: #4A2A2A; /* Dark red */
-    color: #FF8A80; /* Light red */
-    border-left: 6px solid #EF5350;
+    padding: 10px 15px; /* Reduced padding */
+    margin-bottom: 10px; /* Reduced margin-bottom */
+    font-size: 0.9em; /* Smaller font size */
 }
 
 /* Spinner styling */
-.stSpinner > div {
-    color: #00B4D8; /* Primary accent color for spinner animation */
-}
 .stSpinner > div > div {
-    color: #E0E0F0;
-    font-size: 1.15em;
+    font-size: 0.9em; /* Smaller font size */
 }
 
 /* Code block styling */
 div.stCodeBlock {
-    background-color: #2A2A47;
-    border: 1px solid #353550;
-    border-radius: 10px;
-    padding: 20px;
-    margin-top: 25px;
-    margin-bottom: 25px;
-    overflow-x: auto;
-    font-size: 0.95em;
-    line-height: 1.4;
-    box-shadow: 0px 2px 8px rgba(0,0,0,0.15);
-}
-pre {
-    background-color: #2A2A47 !important;
-    color: #E0E0F0 !important;
-    border: none !important;
+    padding: 10px; /* Reduced padding */
+    margin-top: 10px; /* Reduced margin-top */
+    margin-bottom: 10px; /* Reduced margin-bottom */
+    font-size: 0.8em; /* Smaller font size */
 }
 
 /* Footer (for copyright) */
 .footer {
-    width: 100%;
+    padding: 18px 20px; /* Reduced padding */
+    font-size: 11px; /* Smaller font size */
+    margin-top: 30px; /* Reduced margin-top */
     text-align: center;
-    padding: 35px 20px;
-    color: #A0A0B5; /* Muted color for footer text */
-    font-size: 14px;
-    margin-top: 70px;
-    border-top: 1px solid #353550;
-    background-color: #202038;
-    border-radius: 0 0 15px 15px; /* Match header curvature if possible */
-    box-shadow: 0px -5px 15px rgba(0,0,0,0.3);
+    background-color: #2A2A47; /* Added background for the box */
+    border: 1px solid #00B4D8; /* Added border for the box */
+    border-radius: 8px; /* Added border-radius for rounded corners */
+    /* Ensure it covers full width relative to its Streamlit container */
+    margin-left: -20px; /* Adjust to extend to the edge of the Streamlit block container if needed */
+    margin-right: -20px; /* Adjust to extend to the edge of the Streamlit block container if needed */
+    width: calc(100% + 40px); /* Fill the width of the main content area */
+    position: relative; /* Needed for negative margins to work correctly */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: #2A2A47; border-radius: 10px; }
-::-webkit-scrollbar-thumb { background: #00B4D8; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #6A05AD; }
+
+/* Streamlit container padding/gap overrides */
+.st-emotion-cache-nahz7x {
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+}
+.st-emotion-cache-czk5ad.ezrtsby2 {
+    gap: 0.2rem;
+}
+.st-emotion-cache-ocqkz7 {
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+}
+.st-emotion-cache-1jm61g7 {
+    margin-bottom: 0.2rem;
+}
+/* Specific targeting for initial upload screen headings to reduce default block margins */
+h2[data-testid="stMarkdownContainer"]:nth-of-type(1) { /* "Get Started" */
+    margin-bottom: 0.4em !important;
+}
+h3[data-testid="stMarkdownContainer"]:nth-of-type(1) { /* "Upload Healthcare Document(s)" */
+    margin-bottom: 0.1em !important;
+}
+h3[data-testid="stMarkdownContainer"]:nth-of-type(2) { /* "Answer Language" */
+    margin-top: 0.4em !important;
+    margin-bottom: 0.1em !important;
+}
 
 </style>""", unsafe_allow_html=True)
 
@@ -441,168 +274,199 @@ def reset_app_state():
     st.session_state.doc_type = "Unknown"
     st.session_state.chat_history = []
     st.session_state.action_outputs = {}
-    st.session_state.uploaded_files_key = st.session_state.get('uploaded_files_key', 0) + 1 # Increment key to ensure uploader resets
-    # REMOVED: st.rerun() here. The script will naturally rerun after this callback finishes.
+    st.session_state.uploaded_files_key = st.session_state.get('uploaded_files_key', 0) + 1
 
 
 # -------------------------------
 # Header
 # -------------------------------
-    st.markdown('<div class="app-header">⚕️ Generative AI for Demystifying Healthcare Documents</div>', unsafe_allow_html=True)
+st.markdown('<div class="app-header">⚕️ Generative AI for Demystifying Healthcare Documents</div>', unsafe_allow_html=True)
 
 # --- Conditional Rendering of Initial Upload vs. Document Interaction ---
 if not st.session_state.document_processed:
-    # Initial "Get Started" screen
-    # Reduced margin-bottom for "Get Started" header significantly
-    st.markdown("<h2 style='text-align: center; color: #E0E0F0; margin-bottom: 1em;'>Get Started: Upload Your Healthcare Document(s)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: #E0E0F0; margin-bottom: 0.3em;'>Get Started: Upload Your Healthcare Document(s)</h2>", unsafe_allow_html=True)
 
-    # Use a central column for better organization and centering
     _, center_col, _ = st.columns([1, 3, 1])
 
     with center_col:
-        # Upload PDF(s) section (placed first, and centered within center_col)
-        # Reduced margin-bottom for a tighter look
-        st.markdown("### <div style='text-align: center; margin-bottom: 0.2em;'>📂 Upload Healthcare Document(s)</div>", unsafe_allow_html=True)
-        
-        # We need a dynamic key for the file uploader to force a reset when needed
+        st.markdown("### <div style='text-align: center; margin-bottom: 0.1em;'>📂 Upload Healthcare Document(s)</div>", unsafe_allow_html=True)
+
         if 'uploaded_files_key' not in st.session_state:
             st.session_state.uploaded_files_key = 0
-        
+
         uploaded_files = st.file_uploader(
-              "Drag and drop your healthcare document(s) (PDF, JPEG, or PNG) here",
-            type=["pdf", "jpg", "jpeg", "png"],
+            "Drag and drop your healthcare document(s) (PDF, JPEG, or PNG) here",
+            type=["pdf", "jpg", "jpeg", "png", "txt"],
             accept_multiple_files=True,
-            key=f"file_uploader_initial_{st.session_state.uploaded_files_key}", # Dynamic key
-            label_visibility="collapsed" # Hide the default Streamlit label
+            key=f"file_uploader_initial_{st.session_state.uploaded_files_key}",
+            label_visibility="collapsed"
         )
 
-        # Language selector section (placed below uploader, and centered within center_col)
-        # REMOVED st.markdown("---") to reduce space
-        # Further reduced margin-top to bring it very close to the uploader
-        st.markdown("### <div style='text-align: center; margin-top: 0.7em; margin-bottom: 0.2em;'>🌐 Answer Language</div>", unsafe_allow_html=True)
-        # To make the selectbox appear more centrally aligned if it doesn't take full width
-        lang_col_left, lang_col_center_inner, lang_col_right = st.columns([0.5, 2, 0.5]) # Nested columns for selectbox
+        st.markdown("### <div style='text-align: center; margin-top: 0.3em; margin-bottom: 0.1em;'>🌐 Answer Language</div>", unsafe_allow_html=True)
+        lang_col_left, lang_col_center_inner, lang_col_right = st.columns([0.5, 2, 0.5])
         with lang_col_center_inner:
             st.session_state.lang = st.selectbox(
                 "Select Language for AI Responses",
-                ["English", "Hindi", "Kannada"],
+                SUPPORTED_LANGUAGES,
                 key="lang_select_initial",
                 label_visibility="collapsed",
-                index=["English", "Hindi", "Kannada"].index(st.session_state.lang) if st.session_state.lang in ["English", "Hindi", "Kannada"] else 0
+                index=SUPPORTED_LANGUAGES.index(st.session_state.lang) if st.session_state.lang in SUPPORTED_LANGUAGES else 0
             )
-        
-        # General guidance message below both elements
-        # Further reduced margin-top for a tighter layout
+
         st.markdown(
-            "<p style='text-align: center; margin-top: 1em; color: #A0A0B5; font-size: 1.1em;'>"
-                "Upload <strong>one or more</strong> healthcare documents (insurance policies, medical reports, prescriptions) in PDF, JPEG, or PNG format above. "
+            "<p style='text-align: center; margin-top: 0.5em; color: #A0A0B5; font-size: 0.9em;'>"
+                "Upload <strong>one or more</strong> healthcare documents (insurance policies, medical reports, prescriptions) in PDF, JPEG, PNG, or TXT format above. "
             "Our AI will extract and <strong>combine their content for comprehensive analysis</strong> and interaction."
             "</p>", unsafe_allow_html=True
         )
 
-    # Processing logic for uploaded files
     if uploaded_files:
-        num_files = len(uploaded_files)
-        if num_files == 1:
-            st.success("1 healthcare document uploaded successfully! Processing...")
-        else:
-            st.success(f"{num_files} healthcare documents uploaded successfully! Text extracted and combined for processing...")
-            
-        with st.spinner("🔍 Extracting text from PDFs..."):
-            document_text = extract_text_from_pdfs(uploaded_files)
-        
-        if document_text:
-            doc_type = detect_document_type(document_text)
-            st.session_state.document_text = document_text
-            st.session_state.doc_type = doc_type
-            st.session_state.document_processed = True
-            st.rerun() # Rerun to switch to the document interaction view
-        else:
-            st.error("❌ Could not extract any text from the uploaded healthcare documents. Please try again.")
-            # Keep document_processed as False if extraction fails, so the upload UI remains
+        current_file_ids = [f.file_id if hasattr(f, 'file_id') else f.name for f in uploaded_files]
+        if 'last_processed_file_ids' not in st.session_state or st.session_state.last_processed_file_ids != current_file_ids:
+            st.session_state.last_processed_file_ids = current_file_ids
+
+            num_files = len(uploaded_files)
+            if num_files == 1:
+                st.success("1 healthcare document uploaded successfully! Processing...")
+            else:
+                st.success(f"{num_files} healthcare documents uploaded successfully! Text extraction initiated...")
+
+            all_extracted_texts = []
+            processing_errors = []
+
+            for uploaded_file in uploaded_files:
+                try:
+                    is_file_valid, file_validation_msg = Config.validate_file(uploaded_file)
+                    if not is_file_valid:
+                        processing_errors.append(f"File '{uploaded_file.name}' failed validation: {file_validation_msg}")
+                        continue
+
+                    with st.spinner(f"🔍 Extracting text from '{uploaded_file.name}'..."):
+                        extracted_text_single_file = doc_parser.extract_text_from_file(uploaded_file)
+                        if extracted_text_single_file and extracted_text_single_file.strip():
+                            all_extracted_texts.append(extracted_text_single_file)
+                        else:
+                            processing_errors.append(f"No readable text found in '{uploaded_file.name}'. This file will not contribute to the combined document.")
+
+                except Exception as e:
+                    processing_errors.append(f"Error processing '{uploaded_file.name}': {e}. This file will not contribute to the combined document.")
+
+            document_text = "\n\n".join(all_extracted_texts).strip()
+
+            if processing_errors:
+                for error_msg in processing_errors:
+                    st.error(f"❌ {error_msg}")
+
+            if document_text:
+                processed_text = doc_parser.preprocess_text(document_text)
+                is_valid, validation_msg = doc_parser.validate_extracted_text(processed_text)
+
+                if is_valid:
+                    with st.spinner("Classifying document type..."):
+                        classification_result = ai_processor.classify_document(processed_text)
+                        doc_type = classification_result.get("document_type", "Other Legal Document")
+
+                    st.session_state.document_text = processed_text
+                    st.session_state.doc_type = doc_type
+                    st.session_state.document_processed = True
+                    st.session_state.chat_history = []
+                    st.session_state.action_outputs = {}
+                    st.rerun()
+                else:
+                    st.error(f"❌ Document content validation failed: {validation_msg}. Please ensure your document contains meaningful legal/healthcare text and try again.")
+            else:
+                st.error("❌ No meaningful text could be extracted from any of the uploaded documents. Please try again with different files or check file content.")
+
 
 else:
-    # Document has been processed, show interaction tabs
     document_text = st.session_state.document_text
     doc_type = st.session_state.doc_type
-    
-    # Header with Language Selector and "Upload New Document" Button
+
+    # Use st.columns for the layout of Language and Reset button
     header_col_left, header_col_lang, header_col_reset = st.columns([2, 1, 1])
-    
+
     with header_col_lang:
-        st.markdown("<span style='color: #E0E0F0; margin-right: 10px; font-weight: 600;'>🌐 Language:</span>", unsafe_allow_html=True)
+        # Added 'display: block' and 'margin-bottom' to ensure the span acts as a block and provides space
+        st.markdown("<span style='color: #E0E0F0; margin-right: 6px; font-weight: 600; font-size: 0.9em; display: block; margin-bottom: 0.5em;'>🌐 Language:</span>", unsafe_allow_html=True)
         st.session_state.lang = st.selectbox(
             "Answer Language",
-            ["English", "Hindi", "Kannada"],
+            SUPPORTED_LANGUAGES,
             key="lang_select_persistent",
             label_visibility="collapsed",
-            index=["English", "Hindi", "Kannada"].index(st.session_state.lang) if st.session_state.lang in ["English", "Hindi", "Kannada"] else 0
+            index=SUPPORTED_LANGUAGES.index(st.session_state.lang) if st.session_state.lang in SUPPORTED_LANGUAGES else 0
         )
     with header_col_reset:
+        # Spacer to push the button down, aligning it with the selectbox
+        # Height is estimated to match the "Language:" label + selectbox padding/margin difference
+        st.markdown("<div style='height: 1.8em;'></div>", unsafe_allow_html=True) # Adjusted height for better alignment
         if st.button("🔄 Start Over / Upload New Document", on_click=reset_app_state, use_container_width=True, key="btn_new_document"):
-            # This info message will appear on the *new* upload page after the rerun
             st.info("Application state reset. Please upload a new document to begin again.")
-            # No explicit rerun here, as the on_click callback already triggers a rerun for the state changes.
-    
-    st.markdown("---") # Separator below the language selector and reset button
+
+    st.markdown("<div style='border-top: 1px solid #353550; margin-top: 1em; margin-bottom: 1em;'></div>", unsafe_allow_html=True)
     st.subheader("Document Interaction & AI Assistant")
 
     tab1, tab2, tab3 = st.tabs(["📑 Document View", "⚡ Actions", "💬 Ask AI"])
 
     with tab1:
         st.write(f"**Detected Document Type (overall):** <span style='color:#00B4D8;'>{doc_type}</span>", unsafe_allow_html=True)
-        st.markdown("---")
+        st.markdown("<div style='border-top: 1px solid #353550; margin-top: 0.8em; margin-bottom: 0.8em;'></div>", unsafe_allow_html=True)
         st.info("Below is the **combined extracted text** from all your uploaded document(s). A truncated version is displayed for preview. The full combined text is utilized for all AI processing in the 'Actions' and 'Ask AI' tabs.")
-        st.code(document_text[:2000] + "...\n\n[Truncated for preview. Full text is available for processing.]", language="text")
+        st.code(document_text[:Config.MAX_DOCUMENT_LENGTH // 5] + "...\n\n[Truncated for preview. Full text is available for processing.]", language="text")
 
     with tab2:
         st.write(f"**Document Type (overall):** <span style='color:#00B4D8;'>{doc_type}</span>", unsafe_allow_html=True)
-        st.markdown("---")
+        st.markdown("<div style='border-top: 1px solid #353550; margin-top: 0.8em; margin-bottom: 0.8em;'></div>", unsafe_allow_html=True)
         st.write("Perform various AI-powered actions on your uploaded document:")
-        st.markdown("---")
+        st.markdown("<div style='border-top: 1px solid #353550; margin-top: 0.8em; margin-bottom: 0.8em;'></div>", unsafe_allow_html=True)
 
         col1, col2 = st.columns(2)
 
         with col1:
             if st.button("📌 Extract Key Information", use_container_width=True, key="btn_key_info"):
                 with st.spinner("Extracting key entities..."):
-                    result = extract_key_entities(document_text, doc_type, st.session_state.lang)
+                    chat_service.set_document_context(document_text, doc_type)
+                    result = ai_processor.extract_entities(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["key_info"] = {"type": "success", "header": "Key Information Extracted Successfully!", "content": result}
                 st.rerun()
 
             if st.button("⚠️ Risk Assessment", use_container_width=True, key="btn_risk_assessment"):
                 with st.spinner("Performing risk assessment..."):
-                    result = risk_assessment(document_text, doc_type, st.session_state.lang)
+                    chat_service.set_document_context(document_text, doc_type)
+                    result = ai_processor.perform_risk_analysis(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["risk_assessment"] = {"type": "warning", "header": "Risk Assessment Complete:", "content": result}
                 st.rerun()
 
             if st.button("📚 Explain Complex Terms", use_container_width=True, key="btn_explain_terms"):
                 with st.spinner("Explaining complex terms..."):
-                    result = explain_complex_terms(document_text, doc_type, st.session_state.lang)
+                    chat_service.set_document_context(document_text, doc_type)
+                    result = ai_processor.explain_complex_terms(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["explain_terms"] = {"type": "info", "header": "Complex Terms Explained:", "content": result}
                 st.rerun()
 
         with col2:
             if st.button("📝 Generate Compliance Checklist", use_container_width=True, key="btn_checklist"):
                 with st.spinner("Generating compliance checklist..."):
-                    result = generate_compliance_checklist(document_text, doc_type, st.session_state.lang)
+                    chat_service.set_document_context(document_text, doc_type)
+                    result = ai_processor.generate_compliance_checklist(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["compliance_checklist"] = {"type": "success", "header": "Compliance Checklist Generated:", "content": result}
                 st.rerun()
 
             if st.button("📖 Summarize Document", use_container_width=True, key="btn_summarize"):
                 with st.spinner("Summarizing document..."):
-                    result = summarize_text(document_text, doc_type, st.session_state.lang)
+                    chat_service.set_document_context(document_text, doc_type)
+                    result = ai_processor.summarize_document(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["summarize_document"] = {"type": "success", "header": "Document Summarized:", "content": result}
                 st.rerun()
 
             if st.button("🔄 Simplify Document", use_container_width=True, key="btn_simplify"):
                 with st.spinner("Simplifying text..."):
-                    result = simplify_text(document_text, doc_type, st.session_state.lang)
+                    chat_service.set_document_context(document_text, doc_type)
+                    result = ai_processor.simplify_document(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["simplify_document"] = {"type": "info", "header": "Document Simplified (Plain Language):", "content": result}
                 st.rerun()
-        
+
         if st.session_state.action_outputs:
-            st.markdown("---")
+            st.markdown("<div style='border-top: 1px solid #353550; margin-top: 1em; margin-bottom: 1em;'></div>", unsafe_allow_html=True)
             st.subheader("Results:")
             for key, output in st.session_state.action_outputs.items():
                 if output["type"] == "success":
@@ -612,12 +476,13 @@ else:
                 elif output["type"] == "info":
                     st.info(output["header"])
                 st.markdown(output["content"])
-                st.markdown("---")
-
+                st.markdown("<div style='border-top: 1px dashed #353550; margin-top: 0.8em; margin-bottom: 0.8em;'></div>", unsafe_allow_html=True)
     with tab3:
-        st.markdown("---")
+        st.markdown("<div style='border-top: 1px solid #353550; margin-top: 1em; margin-bottom: 1em;'></div>", unsafe_allow_html=True)
         st.write("Ask questions about your document using our AI Assistant:")
-        st.markdown("---")
+        st.markdown("<div style='border-top: 1px solid #353550; margin-top: 0.8em; margin-bottom: 0.8em;'></div>", unsafe_allow_html=True)
+
+        chat_service.set_document_context(document_text, doc_type)
 
         for entry in st.session_state.chat_history:
             if entry["role"] == "user":
@@ -625,17 +490,17 @@ else:
             else:
                 st.markdown(f'<div class="chat-bubble-ai">{entry["content"]}</div>', unsafe_allow_html=True)
 
-        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 5px;'></div>", unsafe_allow_html=True)
         user_input = st.text_input("Type your question...", key="chat_input", placeholder="e.g., What are the key responsibilities of Party A?")
-        
+
         col_ask, _ = st.columns([0.2, 0.8])
         with col_ask:
             if st.button("Ask", key="ask_button", use_container_width=True):
                 if user_input:
                     st.session_state.chat_history.append({"role": "user", "content": user_input})
-                    
+
                     with st.spinner("🤖 Processing your query..."):
-                        response = ask_gemini(user_input, document_text, language=st.session_state.lang, doc_type=doc_type)
+                        response = chat_service.ask_question(user_input, language=st.session_state.lang)
                         st.session_state.chat_history.append({"role": "ai", "content": response})
                     st.rerun()
                 else:
