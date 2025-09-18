@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
-from typing import List, Tuple, Any, Dict 
+from typing import List, Tuple, Any, Dict
 
 load_dotenv()
 
@@ -10,7 +10,13 @@ class Config:
     if not _GEMINI_API_KEY:
         raise ValueError("Google API key not found. Please set it in your .env file as GOOGLE_API_KEY.")
     
-    GEMINI_MODEL_NAME: str = "gemini-1.5-flash" 
+    GEMINI_MODEL_NAME: str = "gemini-1.5-flash"
+    
+    # Model parameters for Gemini (can be made class attributes for easier modification)
+    GEMINI_TEMPERATURE: float = 0.1      # Low temperature for consistent legal analysis
+    GEMINI_MAX_OUTPUT_TOKENS: int = 8192
+    GEMINI_TOP_K: int = 40
+    GEMINI_TOP_P: float = 0.95
 
     @staticmethod
     def initialize_gemini():
@@ -18,8 +24,8 @@ class Config:
         return genai.GenerativeModel(Config.GEMINI_MODEL_NAME)
 
     OCR_ENABLED: bool = False
-    VISION_CLIENT = None      
-    TRANSLATE_CLIENT = None   
+    VISION_CLIENT = None      # Placeholder for a Vision client
+    TRANSLATE_CLIENT = None   # Placeholder for a Translate client
 
     LANG_MAP: Dict[str, str] = {"English": "en", "Hindi": "hi", "Kannada": "kn"}
     SUPPORTED_LANGUAGES: List[str] = list(LANG_MAP.keys()) 
@@ -35,9 +41,14 @@ class Config:
 
     @staticmethod
     def get_model_settings() -> Dict[str, Any]:
+        """Get all relevant model configuration settings."""
         return {
             "model_name": Config.GEMINI_MODEL_NAME,
             "api_key_set": bool(Config._GEMINI_API_KEY),
+            "temperature": Config.GEMINI_TEMPERATURE,
+            "max_output_tokens": Config.GEMINI_MAX_OUTPUT_TOKENS,
+            "top_k": Config.GEMINI_TOP_K,
+            "top_p": Config.GEMINI_TOP_P
         }
 
     @staticmethod
@@ -54,14 +65,3 @@ class Config:
             return False, f"Unsupported file type: {uploaded_file.type}. Supported types are: {', '.join(supported_mime_types)}"
         
         return True, "File is valid."
-    
-    @staticmethod
-    def get_model_settings():
-        """Get model configuration settings"""
-        return {
-            "model_name": Config.GEMINI_MODEL,
-            "temperature": 0.1,  # Low temperature for consistent legal analysis
-            "max_output_tokens": 8192,
-            "top_k": 40,
-            "top_p": 0.95
-        }
