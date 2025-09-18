@@ -32,5 +32,3 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
-# Local config (contains sensitive info)
-config.py
