@@ -90,7 +90,7 @@ Potential future enhancements:
 4. **Configure API Key:**
     Create a `.env` file in the root directory and add your Google Gemini API key:
     ```
-    GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
+    GOOGLE_API_KEY="GOOGLE_API_KEY HERE"
     ```
 5. **Run the Streamlit application:**
     ```bash
