@@ -55,7 +55,7 @@ class AIProcessor:
     def perform_risk_analysis(self, text: str, doc_type: str, language: str = "English") -> str:
         instruction = """
         You are a legal risk assessment specialist. Perform a thorough risk analysis.
-        Structure: 🔴 HIGH RISK, 🟡 MEDIUM RISK, 🟢 LOW RISK, 📋 MITIGATION RECOMMENDATIONS, ⚖️ LEGAL ADVICE.
+        Structure: HIGH RISK, MEDIUM RISK, LOW RISK, MITIGATION RECOMMENDATIONS, ⚖️ LEGAL ADVICE.
         For each risk, explain: what, why problematic, consequences, recommended actions.
         """
         return self._call_gemini(instruction, text, doc_type, language)

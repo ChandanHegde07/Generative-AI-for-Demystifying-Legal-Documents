@@ -16,7 +16,7 @@ SUPPORTED_LANGUAGES = Config.SUPPORTED_LANGUAGES
 
 st.set_page_config(
     page_title="Generative AI for Demystifying Healthcare Documents",
-    page_icon="⚖️",
+    page_icon=":healthcare:",
     layout="wide"
 )
 
@@ -280,7 +280,7 @@ def reset_app_state():
 # -------------------------------
 # Header
 # -------------------------------
-st.markdown('<div class="app-header">⚕️ Generative AI for Demystifying Healthcare Documents</div>', unsafe_allow_html=True)
+st.markdown('<div class="app-header">Generative AI for Demystifying Healthcare Documents</div>', unsafe_allow_html=True)
 
 # --- Conditional Rendering of Initial Upload vs. Document Interaction ---
 if not st.session_state.document_processed:
@@ -289,7 +289,7 @@ if not st.session_state.document_processed:
     _, center_col, _ = st.columns([1, 3, 1])
 
     with center_col:
-        st.markdown("### <div style='text-align: center; margin-bottom: 0.1em;'>📂 Upload Healthcare Document(s)</div>", unsafe_allow_html=True)
+        st.markdown("### <div style='text-align: center; margin-bottom: 0.1em;'>Upload Healthcare Document(s)</div>", unsafe_allow_html=True)
 
         if 'uploaded_files_key' not in st.session_state:
             st.session_state.uploaded_files_key = 0
@@ -302,7 +302,7 @@ if not st.session_state.document_processed:
             label_visibility="collapsed"
         )
 
-        st.markdown("### <div style='text-align: center; margin-top: 0.3em; margin-bottom: 0.1em;'>🌐 Answer Language</div>", unsafe_allow_html=True)
+        st.markdown("### <div style='text-align: center; margin-top: 0.3em; margin-bottom: 0.1em;'>Answer Language</div>", unsafe_allow_html=True)
         lang_col_left, lang_col_center_inner, lang_col_right = st.columns([0.5, 2, 0.5])
         with lang_col_center_inner:
             st.session_state.lang = st.selectbox(
@@ -341,7 +341,7 @@ if not st.session_state.document_processed:
                         processing_errors.append(f"File '{uploaded_file.name}' failed validation: {file_validation_msg}")
                         continue
 
-                    with st.spinner(f"🔍 Extracting text from '{uploaded_file.name}'..."):
+                    with st.spinner(f"Extracting text from '{uploaded_file.name}'..."):
                         extracted_text_single_file = doc_parser.extract_text_from_file(uploaded_file)
                         if extracted_text_single_file and extracted_text_single_file.strip():
                             all_extracted_texts.append(extracted_text_single_file)
@@ -355,7 +355,7 @@ if not st.session_state.document_processed:
 
             if processing_errors:
                 for error_msg in processing_errors:
-                    st.error(f"❌ {error_msg}")
+                    st.error(f"{error_msg}")
 
             if document_text:
                 processed_text = doc_parser.preprocess_text(document_text)
@@ -373,21 +373,19 @@ if not st.session_state.document_processed:
                     st.session_state.action_outputs = {}
                     st.rerun()
                 else:
-                    st.error(f"❌ Document content validation failed: {validation_msg}. Please ensure your document contains meaningful legal/healthcare text and try again.")
+                    st.error(f"Document content validation failed: {validation_msg}. Please ensure your document contains meaningful legal/healthcare text and try again.")
             else:
-                st.error("❌ No meaningful text could be extracted from any of the uploaded documents. Please try again with different files or check file content.")
+                st.error("No meaningful text could be extracted from any of the uploaded documents. Please try again with different files or check file content.")
 
 
 else:
     document_text = st.session_state.document_text
     doc_type = st.session_state.doc_type
 
-    # Use st.columns for the layout of Language and Reset button
     header_col_left, header_col_lang, header_col_reset = st.columns([2, 1, 1])
 
     with header_col_lang:
-        # Added 'display: block' and 'margin-bottom' to ensure the span acts as a block and provides space
-        st.markdown("<span style='color: #E0E0F0; margin-right: 6px; font-weight: 600; font-size: 0.9em; display: block; margin-bottom: 0.5em;'>🌐 Language:</span>", unsafe_allow_html=True)
+        st.markdown("<span style='color: #E0E0F0; margin-right: 6px; font-weight: 600; font-size: 0.9em; display: block; margin-bottom: 0.5em;'>Language:</span>", unsafe_allow_html=True)
         st.session_state.lang = st.selectbox(
             "Answer Language",
             SUPPORTED_LANGUAGES,
@@ -396,16 +394,14 @@ else:
             index=SUPPORTED_LANGUAGES.index(st.session_state.lang) if st.session_state.lang in SUPPORTED_LANGUAGES else 0
         )
     with header_col_reset:
-        # Spacer to push the button down, aligning it with the selectbox
-        # Height is estimated to match the "Language:" label + selectbox padding/margin difference
-        st.markdown("<div style='height: 1.8em;'></div>", unsafe_allow_html=True) # Adjusted height for better alignment
-        if st.button("🔄 Start Over / Upload New Document", on_click=reset_app_state, use_container_width=True, key="btn_new_document"):
+        st.markdown("<div style='height: 1.8em;'></div>", unsafe_allow_html=True)
+        if st.button("Start Over", on_click=reset_app_state, use_container_width=True, key="btn_new_document"):
             st.info("Application state reset. Please upload a new document to begin again.")
 
     st.markdown("<div style='border-top: 1px solid #353550; margin-top: 1em; margin-bottom: 1em;'></div>", unsafe_allow_html=True)
     st.subheader("Document Interaction & AI Assistant")
 
-    tab1, tab2, tab3 = st.tabs(["📑 Document View", "⚡ Actions", "💬 Ask AI"])
+    tab1, tab2, tab3 = st.tabs(["Document View", "Actions", "Ask AI"])
 
     with tab1:
         st.write(f"**Detected Document Type (overall):** <span style='color:#00B4D8;'>{doc_type}</span>", unsafe_allow_html=True)
@@ -422,21 +418,21 @@ else:
         col1, col2 = st.columns(2)
 
         with col1:
-            if st.button("📌 Extract Key Information", use_container_width=True, key="btn_key_info"):
+            if st.button("Extract Key Information", use_container_width=True, key="btn_key_info"):
                 with st.spinner("Extracting key entities..."):
                     chat_service.set_document_context(document_text, doc_type)
                     result = ai_processor.extract_entities(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["key_info"] = {"type": "success", "header": "Key Information Extracted Successfully!", "content": result}
                 st.rerun()
 
-            if st.button("⚠️ Risk Assessment", use_container_width=True, key="btn_risk_assessment"):
+            if st.button("Risk Assessment", use_container_width=True, key="btn_risk_assessment"):
                 with st.spinner("Performing risk assessment..."):
                     chat_service.set_document_context(document_text, doc_type)
                     result = ai_processor.perform_risk_analysis(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["risk_assessment"] = {"type": "warning", "header": "Risk Assessment Complete:", "content": result}
                 st.rerun()
 
-            if st.button("📚 Explain Complex Terms", use_container_width=True, key="btn_explain_terms"):
+            if st.button("Explain Complex Terms", use_container_width=True, key="btn_explain_terms"):
                 with st.spinner("Explaining complex terms..."):
                     chat_service.set_document_context(document_text, doc_type)
                     result = ai_processor.explain_complex_terms(document_text, doc_type, st.session_state.lang)
@@ -444,21 +440,21 @@ else:
                 st.rerun()
 
         with col2:
-            if st.button("📝 Generate Compliance Checklist", use_container_width=True, key="btn_checklist"):
+            if st.button("Generate Compliance Checklist", use_container_width=True, key="btn_checklist"):
                 with st.spinner("Generating compliance checklist..."):
                     chat_service.set_document_context(document_text, doc_type)
                     result = ai_processor.generate_compliance_checklist(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["compliance_checklist"] = {"type": "success", "header": "Compliance Checklist Generated:", "content": result}
                 st.rerun()
 
-            if st.button("📖 Summarize Document", use_container_width=True, key="btn_summarize"):
+            if st.button("Summarize Document", use_container_width=True, key="btn_summarize"):
                 with st.spinner("Summarizing document..."):
                     chat_service.set_document_context(document_text, doc_type)
                     result = ai_processor.summarize_document(document_text, doc_type, st.session_state.lang)
                     st.session_state.action_outputs["summarize_document"] = {"type": "success", "header": "Document Summarized:", "content": result}
                 st.rerun()
 
-            if st.button("🔄 Simplify Document", use_container_width=True, key="btn_simplify"):
+            if st.button("Simplify Document", use_container_width=True, key="btn_simplify"):
                 with st.spinner("Simplifying text..."):
                     chat_service.set_document_context(document_text, doc_type)
                     result = ai_processor.simplify_document(document_text, doc_type, st.session_state.lang)
@@ -499,7 +495,7 @@ else:
                 if user_input:
                     st.session_state.chat_history.append({"role": "user", "content": user_input})
 
-                    with st.spinner("🤖 Processing your query..."):
+                    with st.spinner("Processing your query..."):
                         response = chat_service.ask_question(user_input, language=st.session_state.lang)
                         st.session_state.chat_history.append({"role": "ai", "content": response})
                     st.rerun()
