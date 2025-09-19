@@ -20,9 +20,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# -------------------------------
-# Custom CSS for a modern, vibrant dark theme UI - AGGRESSIVELY REDUCED SPACING
-# -------------------------------
 st.markdown("""<style>
 /* Global styles */
 html, body, .main, .block-container {
