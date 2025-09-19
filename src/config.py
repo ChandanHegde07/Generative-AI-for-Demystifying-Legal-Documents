@@ -10,7 +10,7 @@ class Config:
     if not _GEMINI_API_KEY:
         raise ValueError("Google API key not found. Please set it in your .env file as GOOGLE_API_KEY.")
     
-    GEMINI_MODEL_NAME: str = "gemini-1.5-flash"
+    GEMINI_MODEL_NAME: str = "gemini-1.5-pro"
     
     # Model parameters for Gemini (can be made class attributes for easier modification)
     GEMINI_TEMPERATURE: float = 0.1      # Low temperature for consistent legal analysis
