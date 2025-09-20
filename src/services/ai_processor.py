@@ -24,8 +24,14 @@ class AIProcessor:
             else:
                 response = self.model.generate_content(full_prompt)
             
+            # Attempt to parse JSON if requested, otherwise return raw text
             if json_output:
-                return json.loads(response.text)
+                try:
+                    return json.loads(response.text)
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, return a structured error
+                    print(f"DEBUG: JSONDecodeError for prompt: {system_instruction}. Raw response: {response.text[:200]}...")
+                    return {"error": "Failed to parse JSON response from AI. Raw output may be inconsistent.", "raw_response": response.text}
             return response.text
         except Exception as e:
             raise Exception(f"Gemini API call failed for {system_instruction.split('.')[0]}: {str(e)}")
@@ -45,12 +51,93 @@ class AIProcessor:
             return {"document_type": "Other Legal Document", "confidence": "Low", "error": str(e), "requires_legal_review": True}
     
     def extract_entities(self, text: str, doc_type: str, language: str = "English") -> str:
-        instruction = """
-        You are a legal document analysis expert. Extract comprehensive key information.
-        Extract and organize: Parties, Financial Info, Dates, Key Terms, Legal Framework, Contact Info, Signatures.
-        Present with bullet points and sections.
-        """
-        return self._call_gemini(instruction, text, doc_type, language)
+        # Conditional prompt based on document type
+        if doc_type == "Healthcare Document":
+            instruction = """
+            You are a healthcare document analysis expert. Extract detailed information from the provided healthcare document, specifically a Medical Care Reimbursement Claim.
+            Extract the following fields accurately. If a field is not present, use "N/A".
+            Provide the output in a JSON format.
+
+            JSON format should be:
+            {{
+                "Insured_Person_Details": {{
+                    "Name": "string",
+                    "IP_No": "string",
+                    "Employer": "string",
+                    "Wage_Period": "string"
+                }},
+                "Treatment_Details": {{
+                    "Hospital": "string",
+                    "Treatment_Date": "string (YYYY-MM-DD)",
+                    "Diagnosis": "string",
+                    "Admission_Type": "string"
+                }},
+                "Claim_Summary": {{
+                    "Consultation_Fee_Eligible_Amount": "float",
+                    "Consultation_Fee_Claimed_Amount": "float",
+                    "Consultation_Fee_Approved_Amount": "float",
+                    "Laboratory_Tests_Eligible_Amount": "float",
+                    "Laboratory_Tests_Claimed_Amount": "float",
+                    "Laboratory_Tests_Approved_Amount": "float",
+                    "Medicines_Eligible_Amount": "float",
+                    "Medicines_Claimed_Amount": "float",
+                    "Medicines_Approved_Amount": "float",
+                    "Injection_Administration_Eligible_Amount": "float",
+                    "Injection_Administration_Claimed_Amount": "float",
+                    "Injection_Administration_Approved_Amount": "float",
+                    "Total_Eligible_Amount": "float",
+                    "Total_Claimed_Amount": "float",
+                    "Total_Approved_Amount": "float",
+                    "Patient_Liability": "float"
+                }},
+                "Payment_Details": {{
+                    "Amount_Approved": "float",
+                    "Amount_Paid": "float",
+                    "Patient_Liability_Payment": "float",
+                    "Payment_Mode": "string",
+                    "UTR_No": "string",
+                    "Date_of_Payment": "string (YYYY-MM-DD)"
+                }},
+                "Deductions_Applied_Summary": [
+                    "bullet point summary of each deduction"
+                ],
+                "Terms_And_Conditions_Summary": [
+                    "bullet point summary of each term and condition"
+                ]
+            }}
+            Ensure all float values are parsed as numbers. If a number is indicated by '*', do not include the '*' in the output.
+            If a field is mentioned in the JSON schema but not found, set its value to "N/A".
+            """
+            try:
+                # Call Gemini with JSON output expected
+                extracted_data = self._call_gemini(instruction, text, doc_type, language, json_output=True)
+                
+                # Format the JSON output nicely for Streamlit display
+                formatted_output = "### Extracted Key Information (Healthcare Document)\n\n"
+                if "error" in extracted_data:
+                    return f"**Error:** {extracted_data['error']}\n\n**Raw AI Response:**\n```json\n{extracted_data.get('raw_response', 'N/A')}\n```"
+                
+                for section, data in extracted_data.items():
+                    formatted_output += f"**{section.replace('_', ' ')}:**\n"
+                    if isinstance(data, dict):
+                        for key, value in data.items():
+                            formatted_output += f"- **{key.replace('_', ' ')}:** {value}\n"
+                    elif isinstance(data, list):
+                        for item in data:
+                            formatted_output += f"- {item}\n"
+                    formatted_output += "\n"
+                return formatted_output
+
+            except Exception as e:
+                return f"An error occurred during healthcare document extraction: {str(e)}"
+        else:
+            # Original generic instruction for other document types
+            instruction = """
+            You are a legal document analysis expert. Extract comprehensive key information.
+            Extract and organize: Parties, Financial Info, Dates, Key Terms, Legal Framework, Contact Info, Signatures.
+            Present with bullet points and sections.
+            """
+            return self._call_gemini(instruction, text, doc_type, language)
     
     def perform_risk_analysis(self, text: str, doc_type: str, language: str = "English") -> str:
         instruction = """
@@ -106,10 +193,13 @@ class AIProcessor:
         doc_types = Config.SUPPORTED_DOCUMENT_TYPES 
         return next((dt for dt in doc_types if dt.lower() in response_text.lower()), "Other Legal Document")
     
+    # This method is not currently called in app.py, but for completeness, I'll update it
+    # to be less strict if it were to be used in the future.
     def validate_document_analysis(self, text: str) -> Tuple[bool, str]:
-        if not text or len(text.strip()) < 100 or len(text.split()) < 50:
-            return False, "Document too short or insufficient content."
-        legal_indicators = ['agreement', 'contract', 'terms', 'conditions', 'party', 'clause', 'section']
-        if not any(ind in text.lower() for ind in legal_indicators):
-            return False, "Document may not be legal or text extraction poor."
+        if not text or len(text.strip()) < Config.MIN_TEXT_FOR_ANALYSIS: # Use config value
+            return False, f"Document too short or insufficient content. Minimum {Config.MIN_TEXT_FOR_ANALYSIS} characters required."
+        
+        # Removed the keyword check as it can be overly restrictive and the AI's classification
+        # is more robust for determining document type.
+        
         return True, "Document is suitable for analysis."

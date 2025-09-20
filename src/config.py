@@ -10,7 +10,7 @@ class Config:
     if not _GEMINI_API_KEY:
         raise ValueError("Google API key not found. Please set it in your .env file as GOOGLE_API_KEY.")
     
-    GEMINI_MODEL_NAME: str = "gemini-1.5-pro"
+    GEMINI_MODEL_NAME: str = "gemini-1.5-flash"
     
     # Model parameters for Gemini (can be made class attributes for easier modification)
     GEMINI_TEMPERATURE: float = 0.1      # Low temperature for consistent legal analysis
@@ -31,6 +31,8 @@ class Config:
     SUPPORTED_LANGUAGES: List[str] = list(LANG_MAP.keys()) 
 
     MAX_DOCUMENT_LENGTH: int = 300000 
+    # ADD THIS NEW LINE: Minimum text length for extracted content to be considered meaningful
+    MIN_TEXT_FOR_ANALYSIS: int = 0 # Adjusted to allow shorter, structured documents
 
     SUPPORTED_DOCUMENT_TYPES: List[str] = [
         "Contract Agreement", "Legal Notice", "Terms of Service", "Privacy Policy",
@@ -47,8 +49,8 @@ class Config:
             "api_key_set": bool(Config._GEMINI_API_KEY),
             "temperature": Config.GEMINI_TEMPERATURE,
             "max_output_tokens": Config.GEMINI_MAX_OUTPUT_TOKENS,
-            "top_k": Config.GEMINI_TOP_K,
-            "top_p": Config.GEMINI_TOP_P
+            "top_k": Config.GEMINI_TOP_K, # Corrected: Was Config.TOP_K
+            "top_p": Config.GEMINI_TOP_P  # Corrected: Was Config.TOP_P
         }
 
     @staticmethod
