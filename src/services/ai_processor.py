@@ -24,12 +24,10 @@ class AIProcessor:
             else:
                 response = self.model.generate_content(full_prompt)
             
-            # Attempt to parse JSON if requested, otherwise return raw text
             if json_output:
                 try:
                     return json.loads(response.text)
                 except json.JSONDecodeError:
-                    # If JSON parsing fails, return a structured error
                     print(f"DEBUG: JSONDecodeError for prompt: {system_instruction}. Raw response: {response.text[:200]}...")
                     return {"error": "Failed to parse JSON response from AI. Raw output may be inconsistent.", "raw_response": response.text}
             return response.text
@@ -51,7 +49,6 @@ class AIProcessor:
             return {"document_type": "Other Legal Document", "confidence": "Low", "error": str(e), "requires_legal_review": True}
     
     def extract_entities(self, text: str, doc_type: str, language: str = "English") -> str:
-        # Conditional prompt based on document type
         if doc_type == "Healthcare Document":
             instruction = """
             You are a healthcare document analysis expert. Extract detailed information from the provided healthcare document, specifically a Medical Care Reimbursement Claim.
@@ -109,10 +106,7 @@ class AIProcessor:
             If a field is mentioned in the JSON schema but not found, set its value to "N/A".
             """
             try:
-                # Call Gemini with JSON output expected
                 extracted_data = self._call_gemini(instruction, text, doc_type, language, json_output=True)
-                
-                # Format the JSON output nicely for Streamlit display
                 formatted_output = "### Extracted Key Information (Healthcare Document)\n\n"
                 if "error" in extracted_data:
                     return f"**Error:** {extracted_data['error']}\n\n**Raw AI Response:**\n```json\n{extracted_data.get('raw_response', 'N/A')}\n```"
@@ -131,7 +125,6 @@ class AIProcessor:
             except Exception as e:
                 return f"An error occurred during healthcare document extraction: {str(e)}"
         else:
-            # Original generic instruction for other document types
             instruction = """
             You are a legal document analysis expert. Extract comprehensive key information.
             Extract and organize: Parties, Financial Info, Dates, Key Terms, Legal Framework, Contact Info, Signatures.
@@ -193,13 +186,8 @@ class AIProcessor:
         doc_types = Config.SUPPORTED_DOCUMENT_TYPES 
         return next((dt for dt in doc_types if dt.lower() in response_text.lower()), "Other Legal Document")
     
-    # This method is not currently called in app.py, but for completeness, I'll update it
-    # to be less strict if it were to be used in the future.
     def validate_document_analysis(self, text: str) -> Tuple[bool, str]:
-        if not text or len(text.strip()) < Config.MIN_TEXT_FOR_ANALYSIS: # Use config value
+        if not text or len(text.strip()) < Config.MIN_TEXT_FOR_ANALYSIS: 
             return False, f"Document too short or insufficient content. Minimum {Config.MIN_TEXT_FOR_ANALYSIS} characters required."
-        
-        # Removed the keyword check as it can be overly restrictive and the AI's classification
-        # is more robust for determining document type.
-        
+    
         return True, "Document is suitable for analysis."
