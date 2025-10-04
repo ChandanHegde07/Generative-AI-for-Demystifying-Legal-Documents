@@ -13,7 +13,6 @@ class DocumentParser:
     def _extract_text_pdf(self, pdf_file) -> str:
         """Extract text from a PDF file stream using PyPDF2."""
         reader = PyPDF2.PdfReader(pdf_file)
-        # Using a more robust way to get text, handling potential None from extract_text()
         extracted_pages = []
         for i, p in enumerate(reader.pages):
             page_text = p.extract_text()
@@ -111,7 +110,6 @@ class DocumentParser:
         
         if uploaded_file.type == "application/pdf":
             try:
-                # IMPORTANT: Reset file pointer before reading with PyPDF2 if it was read elsewhere
                 uploaded_file.seek(0) 
                 reader = PyPDF2.PdfReader(uploaded_file)
                 metadata['num_pages'] = len(reader.pages)
@@ -123,7 +121,6 @@ class DocumentParser:
         
         elif uploaded_file.type.startswith('image/'):
             try:
-                # IMPORTANT: Reset file pointer before reading with PIL if it was read elsewhere
                 uploaded_file.seek(0)
                 img = Image.open(io.BytesIO(uploaded_file.getvalue()))
                 metadata.update({'image_dimensions': f"{img.width}x{img.height}", 'image_mode': img.mode, 'image_format': img.format})
@@ -144,15 +141,9 @@ class DocumentParser:
             print("DEBUG VALIDATION: Failed: No text or empty after strip.")
             return False, "No text was extracted from the document."
         
-        # Validate against configurable minimum character length
         if len(cleaned_text) < Config.MIN_TEXT_FOR_ANALYSIS: 
             print(f"DEBUG VALIDATION: Failed: Text too short, {len(cleaned_text)} characters. Minimum is {Config.MIN_TEXT_FOR_ANALYSIS}.")
             return False, f"Extracted text is too short to be meaningful ({len(cleaned_text)} characters found, minimum is {Config.MIN_TEXT_FOR_ANALYSIS})."
-        
-        # REMOVED THE LEGAL/HEALTHCARE INDICATOR CHECK AS IT WAS OVERLY STRICT FOR THIS USE CASE
-        # AND THE AI CLASSIFIER IS BETTER SUITED FOR SEMANTIC DOCUMENT TYPE RECOGNITION.
-        # The error "Text may not be a legal/healthcare document or OCR quality poor" was specifically
-        # coming from this removed block, incorrectly failing valid structured documents.
-        
+
         print("DEBUG VALIDATION: Passed.")
         return True, "Text extraction appears successful."
