@@ -11,7 +11,7 @@ class Config:
     if not _GEMINI_API_KEY:
         raise ValueError("Google API key not found. Set it in .env (local) or Streamlit Secrets (cloud).")
 
-    GEMINI_MODEL_NAME: str = "gemini-1.5-flash"
+    GEMINI_MODEL_NAME: str = "gemini-2.0-flash-lite"
     GEMINI_TEMPERATURE: float = 0.1
     GEMINI_MAX_OUTPUT_TOKENS: int = 8192
     GEMINI_TOP_K: int = 40

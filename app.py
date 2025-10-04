@@ -246,25 +246,21 @@ h3[data-testid="stMarkdownContainer"]:nth-of-type(2) { /* "Answer Language" */
 
 </style>""", unsafe_allow_html=True)
 
-# Initialize session state for chat history if not already present
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-# Initialize session state for action outputs if not already present
 if 'action_outputs' not in st.session_state:
     st.session_state.action_outputs = {}
 
-# Initialize session state for document processing status and data
 if 'document_processed' not in st.session_state:
     st.session_state.document_processed = False
 if 'document_text' not in st.session_state:
     st.session_state.document_text = None
 if 'doc_type' not in st.session_state:
     st.session_state.doc_type = "Unknown"
-if 'lang' not in st.session_state: # Default language
+if 'lang' not in st.session_state: 
     st.session_state.lang = "English"
 
-# --- Function to reset the application state ---
 def reset_app_state():
     st.session_state.document_processed = False
     st.session_state.document_text = None
@@ -273,13 +269,8 @@ def reset_app_state():
     st.session_state.action_outputs = {}
     st.session_state.uploaded_files_key = st.session_state.get('uploaded_files_key', 0) + 1
 
-
-# -------------------------------
-# Header
-# -------------------------------
 st.markdown('<div class="app-header">Generative AI for Demystifying Healthcare Documents</div>', unsafe_allow_html=True)
 
-# --- Conditional Rendering of Initial Upload vs. Document Interaction ---
 if not st.session_state.document_processed:
     st.markdown("<h2 style='text-align: center; color: #E0E0F0; margin-bottom: 0.3em;'>Get Started: Upload Your Healthcare Document(s)</h2>", unsafe_allow_html=True)
 
@@ -499,10 +490,6 @@ else:
                 else:
                     st.warning("Please type a question to ask.")
 
-
-# -------------------------------
-# Footer (Copyright)
-# -------------------------------
 st.markdown("""
 <div class="footer">
     Generative AI for Demystifying Healthcare Documents.
