@@ -50,8 +50,6 @@ This project is an AI-powered assistant designed to simplify and analyze complex
 
 ---
 
-
-
 ## Future Scope
 Potential future enhancements:
 - **Text-to-Speech Support** – For accessibility, especially in healthcare settings.
