@@ -32,3 +32,4 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
+.streamlit/secrets.toml
