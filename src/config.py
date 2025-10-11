@@ -22,19 +22,38 @@ class Config:
         genai.configure(api_key=Config._GEMINI_API_KEY)
         return genai.GenerativeModel(Config.GEMINI_MODEL_NAME)
 
-    OCR_ENABLED: bool = False
+    # OCR Configuration
+    OCR_ENABLED: bool = True
     VISION_CLIENT = None
-    TRANSLATE_CLIENT = None
+    
+    @staticmethod
+    def initialize_vision():
+        """Initialize Google Cloud Vision API client"""
+        try:
+            from google.cloud import vision
+            # Vision API will use the same Google API key via application default credentials
+            # or you can set GOOGLE_APPLICATION_CREDENTIALS environment variable
+            return vision.ImageAnnotatorClient()
+        except Exception as e:
+            print(f"Warning: Could not initialize Vision API: {str(e)}")
+            print("Falling back to Pillow for image processing")
+            return None
+    
+    TRANSLATE_CLIENT = None   
 
     LANG_MAP: Dict[str, str] = {"English": "en", "Hindi": "hi", "Kannada": "kn"}
     SUPPORTED_LANGUAGES: List[str] = list(LANG_MAP.keys())
 
-    MAX_DOCUMENT_LENGTH: int = 300000
-    MIN_TEXT_FOR_ANALYSIS: int = 0
+    MAX_DOCUMENT_LENGTH: int = 300000 
+    MIN_TEXT_FOR_ANALYSIS: int = 0 
+    
+    # PII Anonymization
+    ENABLE_PII_ANONYMIZATION: bool = True  # Toggle PII detection and replacement
+    SHOW_PII_MAPPING: bool = True  # Show the PII mapping to users
 
     SUPPORTED_DOCUMENT_TYPES: List[str] = [
         "Contract Agreement", "Legal Notice", "Terms of Service", "Privacy Policy",
-        "Employment Agreement", "Lease Agreement", "Insurance Policy", "Healthcare Document",
+        "Employment Agreement", "Insurance Policy", "Healthcare Document",
         "Government Legal Document", "Court Document", "Corporate Legal Document",
         "Other Legal Document"
     ]

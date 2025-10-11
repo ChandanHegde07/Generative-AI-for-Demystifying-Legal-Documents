@@ -1,14 +1,31 @@
 import google.generativeai as genai
 from typing import Dict, Any, Tuple, Optional
 from src.config import Config
+from src.utils.pii_anonymizer import PIIAnonymizer
 import json
 
 class AIProcessor:
     def __init__(self):
         self.model = Config.initialize_gemini()
+        self.anonymizer = PIIAnonymizer() if Config.ENABLE_PII_ANONYMIZATION else None
+        self.current_pii_mapping: Dict[str, str] = {}
+    
+    def reset_pii_mapping(self):
+        """Reset PII mapping for a new document"""
+        self.current_pii_mapping = {}
+        if self.anonymizer:
+            self.anonymizer.pii_mapping = {}
+            self.anonymizer.reverse_mapping = {}
 
     def _call_gemini(self, system_instruction: str, content: str, doc_type: str = "", language: str = "English", json_output: bool = False, truncate_text_to: Optional[int] = None, image_data=None) -> Any:
         text_content = content[:truncate_text_to] if truncate_text_to else content
+        
+        # Anonymize content before sending to Gemini (if enabled)
+        pii_mapping = {}
+        if self.anonymizer and Config.ENABLE_PII_ANONYMIZATION:
+            text_content, pii_mapping = self.anonymizer.anonymize(text_content)
+            # Merge with existing mappings to maintain all PII references
+            self.current_pii_mapping = {**self.current_pii_mapping, **pii_mapping}
         
         full_prompt = f"""
         {system_instruction}
@@ -24,13 +41,18 @@ class AIProcessor:
             else:
                 response = self.model.generate_content(full_prompt)
             
+            # Deanonymize response before returning (restore original PII)
+            response_text = response.text
+            if self.anonymizer and self.current_pii_mapping:
+                response_text = self.anonymizer.deanonymize(response_text, self.current_pii_mapping)
+            
             if json_output:
                 try:
-                    return json.loads(response.text)
+                    return json.loads(response_text)
                 except json.JSONDecodeError:
-                    print(f"DEBUG: JSONDecodeError for prompt: {system_instruction}. Raw response: {response.text[:200]}...")
-                    return {"error": "Failed to parse JSON response from AI. Raw output may be inconsistent.", "raw_response": response.text}
-            return response.text
+                    print(f"DEBUG: JSONDecodeError for prompt: {system_instruction}. Raw response: {response_text[:200]}...")
+                    return {"error": "Failed to parse JSON response from AI. Raw output may be inconsistent.", "raw_response": response_text}
+            return response_text
         except Exception as e:
             raise Exception(f"Gemini API call failed for {system_instruction.split('.')[0]}: {str(e)}")
 

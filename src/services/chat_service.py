@@ -1,6 +1,7 @@
 import google.generativeai as genai
 from typing import List, Dict, Any, Optional
 from src.config import Config 
+from src.utils.pii_anonymizer import PIIAnonymizer
 import re
 
 class ChatService:
@@ -8,13 +9,30 @@ class ChatService:
         self.model = Config.initialize_gemini()
         self.conversation_history = []
         self.document_context = ""
+        self.document_context_anonymized = ""  # For Gemini
         self.document_type = ""
         self.max_history_length = 20
+        self.anonymizer = PIIAnonymizer() if Config.ENABLE_PII_ANONYMIZATION else None
+        self.current_pii_mapping: Dict[str, str] = {}
+    
+    def reset_pii_mapping(self):
+        """Reset PII mapping for a new document"""
+        self.current_pii_mapping = {}
+        if self.anonymizer:
+            self.anonymizer.pii_mapping = {}
+            self.anonymizer.reverse_mapping = {}
 
     def set_document_context(self, document_text: str, doc_type: str):
-        self.document_context = document_text
+        self.document_context = document_text  # Keep original
         self.document_type = doc_type
         self.conversation_history = []
+        
+        # Create anonymized version for Gemini if PII protection is enabled
+        if self.anonymizer and Config.ENABLE_PII_ANONYMIZATION:
+            self.document_context_anonymized, pii_mapping = self.anonymizer.anonymize(document_text)
+            self.current_pii_mapping.update(pii_mapping)
+        else:
+            self.document_context_anonymized = document_text
 
     def _add_to_history(self, question: str, answer: str):
         self.conversation_history.extend([{"role": "user", "parts": [question]}, {"role": "model", "parts": [answer]}])
@@ -26,7 +44,13 @@ class ChatService:
     def _call_gemini_chat(self, prompt: str) -> str:
         try:
             response = self.model.generate_content(prompt)
-            return response.text.strip()
+            response_text = response.text.strip()
+            
+            # Deanonymize response to restore original PII
+            if self.anonymizer and self.current_pii_mapping:
+                response_text = self.anonymizer.deanonymize(response_text, self.current_pii_mapping)
+            
+            return response_text
         except Exception as e:
             raise Exception(f"Chat API call failed: {str(e)}")
 
@@ -35,7 +59,7 @@ class ChatService:
         prompt = f"""
         You are an expert legal AI assistant.
         Document Type: {self.document_type}
-        Document Content: {self.document_context}
+        Document Content: {self.document_context_anonymized}
         Conversation History: {conversation_context}
         Current Question: {question}
         Response Language: {language}
@@ -55,7 +79,7 @@ class ChatService:
     def get_suggested_questions(self, language: str = "English") -> List[str]:
         prompt = f"""
         Based on this {self.document_type}, suggest 8 relevant, practical, actionable questions for non-lawyers.
-        Document content: {self.document_context[:2000]}
+        Document content: {self.document_context_anonymized[:2000]}
         Generate questions in {language} as a numbered list.
         """
         try:
@@ -82,7 +106,7 @@ class ChatService:
     def compare_options(self, question: str, language: str = "English") -> str:
         prompt = f"""
         You are analyzing options or alternatives related to this {self.document_type}.
-        Document context: {self.document_context}
+        Document context: {self.document_context_anonymized}
         Comparison question: {question}
         Provide a structured comparison in {language}: Options Analysis (Advantages, Disadvantages, Legal Implications, Costs/Benefits for each), Recommendation, Important Considerations.
         """

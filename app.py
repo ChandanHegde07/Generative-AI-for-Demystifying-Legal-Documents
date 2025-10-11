@@ -312,6 +312,10 @@ if not st.session_state.document_processed:
         current_file_ids = [f.file_id if hasattr(f, 'file_id') else f.name for f in uploaded_files]
         if 'last_processed_file_ids' not in st.session_state or st.session_state.last_processed_file_ids != current_file_ids:
             st.session_state.last_processed_file_ids = current_file_ids
+            
+            # Reset PII mappings for new document
+            ai_processor.reset_pii_mapping()
+            chat_service.reset_pii_mapping()
 
             num_files = len(uploaded_files)
             if num_files == 1:

@@ -1,5 +1,6 @@
 streamlit
 google-generativeai
+google-cloud-vision
 Pillow
 python-dotenv
 PyPDF2
