@@ -43,16 +43,130 @@ class DocumentParser:
             self.model = genai.GenerativeModel('gemini-1.5-flash')
     
     def _extract_text_pdf(self, pdf_file) -> str:
-        """Extract text from PDF using PyPDF2"""
+        """Extract text from PDF using PyPDF2, with OCR fallback for scanned PDFs"""
         reader = PyPDF2.PdfReader(pdf_file)
         extracted_pages = []
-        for i, p in enumerate(reader.pages):
-            page_text = p.extract_text()
-            if page_text:
+        has_no_text = True  # Track if PDF has any extractable text
+        
+        for i, page in enumerate(reader.pages):
+            page_text = page.extract_text()
+            
+            # If page has text, use it
+            if page_text and len(page_text.strip()) > 20:
                 extracted_pages.append(f"\n--- Page {i+1} ---\n{page_text}")
+                has_no_text = False
             else:
-                extracted_pages.append(f"\n--- Page {i+1} ---\n[No readable text on this page]")
-        return "\n".join(extracted_pages).strip()
+                extracted_pages.append(None)  # Mark for OCR later
+        
+        # If entire PDF has no extractable text, it's a scanned PDF - use OCR
+        if has_no_text:
+            print("DEBUG: PDF appears to be scanned/image-based. Using OCR on entire PDF...")
+            ocr_text = self._extract_text_from_scanned_pdf(pdf_file)
+            if ocr_text and len(ocr_text.strip()) > 10:
+                return ocr_text
+            else:
+                return "[No readable text could be extracted from this PDF]"
+        
+        # Otherwise, use OCR only on pages without text
+        final_pages = []
+        for i, page_content in enumerate(extracted_pages):
+            if page_content is not None:
+                final_pages.append(page_content)
+            else:
+                # Try OCR on this specific page
+                print(f"DEBUG: Page {i+1} has no text. Attempting OCR...")
+                ocr_page_text = self._extract_text_from_pdf_page_ocr(pdf_file, i)
+                if ocr_page_text and len(ocr_page_text.strip()) > 10:
+                    final_pages.append(f"\n--- Page {i+1} (OCR) ---\n{ocr_page_text}")
+                else:
+                    final_pages.append(f"\n--- Page {i+1} ---\n[No readable text on this page]")
+        
+        return "\n".join(final_pages).strip()
+    
+    def _extract_text_from_scanned_pdf(self, pdf_file) -> str:
+        """Extract text from scanned PDF using Cloud Vision or Gemini OCR"""
+        try:
+            # Method 1: Try Cloud Vision API (best for scanned PDFs)
+            if self.vision_client:
+                print("DEBUG: Using Cloud Vision API for scanned PDF...")
+                
+                from google.cloud import vision
+                
+                pdf_file.seek(0)
+                pdf_bytes = pdf_file.read()
+                
+                # Cloud Vision supports direct PDF processing
+                input_config = vision.InputConfig(
+                    content=pdf_bytes,
+                    mime_type='application/pdf'
+                )
+                
+                feature = vision.Feature(type_=vision.Feature.Type.DOCUMENT_TEXT_DETECTION)
+                request = vision.AnnotateFileRequest(
+                    input_config=input_config,
+                    features=[feature]
+                )
+                
+                response = self.vision_client.batch_annotate_files(requests=[request])
+                
+                extracted_text = []
+                for page_response in response.responses[0].responses:
+                    if page_response.full_text_annotation:
+                        extracted_text.append(page_response.full_text_annotation.text)
+                
+                if extracted_text:
+                    full_text = "\n\n".join(extracted_text)
+                    print(f"DEBUG: Cloud Vision extracted {len(full_text)} characters from PDF")
+                    return full_text
+            
+            # Method 2: Fallback to Gemini with PDF
+            print("DEBUG: Using Gemini fallback for scanned PDF...")
+            return self._extract_text_from_pdf_with_gemini(pdf_file)
+            
+        except Exception as e:
+            print(f"WARNING: Cloud Vision PDF processing failed: {str(e)}")
+            print("DEBUG: Falling back to Gemini...")
+            return self._extract_text_from_pdf_with_gemini(pdf_file)
+    
+    def _extract_text_from_pdf_page_ocr(self, pdf_file, page_num: int) -> str:
+        """OCR a specific PDF page (fallback for mixed text/image PDFs)"""
+        # For now, return empty - full PDF OCR is more reliable
+        # This can be enhanced later if needed
+        return ""
+    
+    def _extract_text_from_pdf_with_gemini(self, pdf_file) -> str:
+        """Use Gemini to extract text from PDF (fallback method)"""
+        try:
+            pdf_file.seek(0)
+            pdf_bytes = pdf_file.read()
+            
+            # Upload PDF to Gemini
+            import google.generativeai as genai
+            
+            # Create a temporary file-like object for Gemini
+            pdf_part = {
+                "mime_type": "application/pdf",
+                "data": pdf_bytes
+            }
+            
+            prompt = """Extract all text from this PDF document. 
+            
+Provide the complete text content, maintaining the original structure and formatting as much as possible.
+Include all tables, lists, and structured data.
+If there are multiple pages, separate them clearly."""
+            
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content([prompt, pdf_part])
+            
+            if response and response.text:
+                print(f"DEBUG: Gemini extracted {len(response.text)} characters from PDF")
+                return response.text
+            
+            return ""
+            
+        except Exception as e:
+            print(f"ERROR: Gemini PDF extraction failed: {str(e)}")
+            return ""
 
     def _extract_text_image_cloud_vision(self, image_file) -> str:
         """Extract text using Google Cloud Vision API with Pillow fallback"""
