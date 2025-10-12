@@ -263,6 +263,7 @@ h3[data-testid="stMarkdownContainer"]:nth-of-type(2) {
 st.markdown(get_custom_css(), unsafe_allow_html=True)
 
 def init_session_state():
+    
     defaults = {
         'chat_history': [],
         'action_outputs': {},
