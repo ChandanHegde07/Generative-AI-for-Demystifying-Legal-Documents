@@ -11,3 +11,5 @@ langchain-google-genai
 langchain-community
 faiss-cpu
 PyMuPDF
+langchain-experimental  
+sentence-transformers

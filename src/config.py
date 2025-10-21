@@ -11,7 +11,10 @@ class Config:
     if not _GEMINI_API_KEY:
         raise ValueError("Google API key not found. Please set it in your .env file or Streamlit Secrets.")
 
-    GEMINI_MODEL_NAME: str = "gemini-1.5-flash-latest" 
+    # --- THIS LINE IS CORRECTED ---
+    GEMINI_MODEL_NAME: str = "gemini-2.5-flash-lite"
+    # ------------------------------------
+    
     GEMINI_TEMPERATURE: float = 0.1
     GEMINI_MAX_OUTPUT_TOKENS: int = 8192
     GEMINI_TOP_K: int = 40
@@ -22,7 +25,7 @@ class Config:
         genai.configure(api_key=Config._GEMINI_API_KEY)
         return genai.GenerativeModel(Config.GEMINI_MODEL_NAME)
 
-    EMBEDDING_MODEL_NAME: str = "models/embedding-001" 
+    EMBEDDING_MODEL_NAME: str = "models/text-embedding-004"
 
     USE_GOOGLE_VISION_OCR: bool = True 
 
@@ -58,12 +61,7 @@ class Config:
             return False, "No file provided."
 
         MAX_FILE_SIZE_MB = 25
-        try:
-            file_size = len(uploaded_file.getvalue())
-        except Exception:
-            file_size = uploaded_file.size
-
-        if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
+        if uploaded_file.size > MAX_FILE_SIZE_MB * 1024 * 1024:
             return False, f"File size exceeds {MAX_FILE_SIZE_MB}MB limit."
 
         supported_mime_types = ["application/pdf", "image/jpeg", "image/png", "image/gif", "text/plain"]

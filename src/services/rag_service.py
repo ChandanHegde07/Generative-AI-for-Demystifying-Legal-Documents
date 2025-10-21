@@ -1,9 +1,18 @@
 import google.generativeai as genai
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import CrossEncoderReranker
+from langchain_experimental.text_splitter import SemanticChunker
+# --- IMPORTS HAVE CHANGED ---
+# We no longer need the raw CrossEncoder from sentence_transformers here.
+# Instead, we import the LangChain wrapper for it.
+from langchain_community.cross_encoders import HuggingFaceCrossEncoder
+# -----------------------------
 import streamlit as st
 from typing import List
+import os
+import hashlib
 
 from src.config import Config
 
@@ -13,72 +22,98 @@ except Exception as e:
     st.error(f"Failed to configure Google API: {e}")
     st.stop()
 
+CACHE_DIR = "vector_store_cache"
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
 
 class RAGService:
     def __init__(self, document_text: str):
-        """
-        Initializes the RAG service by processing the document text.
+        self.vector_store = None
         
-        Args:
-            document_text: The combined text from the uploaded document(s).
-        """
-        print("DEBUG: Initializing RAGService...")
-        self.text_chunks = self._get_text_chunks(document_text)
-        if self.text_chunks:
-            self.vector_store = self._get_vector_store(self.text_chunks)
-            if self.vector_store:
-                print("DEBUG: RAGService initialized successfully. Vector store created.")
+        document_id = hashlib.sha256(document_text.encode()).hexdigest()
+        cache_folder_path = os.path.join(CACHE_DIR, document_id)
+        
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=Config.EMBEDDING_MODEL_NAME)
+        
+        if os.path.exists(cache_folder_path):
+            print(f"DEBUG: Loading vector store from local cache: {cache_folder_path}")
+            try:
+                self.vector_store = FAISS.load_local(cache_folder_path, self.embeddings, allow_dangerous_deserialization=True)
+                print("✅ DEBUG: RAGService initialized successfully from cache.")
+            except Exception as e:
+                print(f"❌ ERROR: Failed to load from cache: {e}. Rebuilding...")
+                self.vector_store = self._build_and_save_vector_store(document_text, cache_folder_path)
         else:
-            self.vector_store = None
-            print("WARNING: RAGService initialized, but no text chunks were generated to create a vector store.")
+            print("DEBUG: No cache found. Building new vector store...")
+            self.vector_store = self._build_and_save_vector_store(document_text, cache_folder_path)
+        
+        if self.vector_store:
+            self.retriever = self._initialize_reranker(self.vector_store)
+        else:
+            self.retriever = None
 
-    def _get_text_chunks(self, text: str) -> List[str]:
-        """Splits the text into smaller chunks."""
-        if not text or not text.strip():
-            print("DEBUG: Input text for chunking is empty.")
-            return []
+    def _build_and_save_vector_store(self, document_text, cache_path):
+        text_chunks = self._get_semantic_chunks(document_text)
+        if not text_chunks:
+            print("⚠️ WARNING: No text chunks generated.")
+            return None
             
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, 
-            chunk_overlap=200
-        )
-        chunks = text_splitter.split_text(text)
-        print(f"DEBUG: Text split into {len(chunks)} chunks.")
-        return chunks
-
-    def _get_vector_store(self, text_chunks: List[str]):
-        """Creates embeddings and stores them in a FAISS vector store."""
         try:
-            embeddings = GoogleGenerativeAIEmbeddings(model=Config.EMBEDDING_MODEL_NAME)
-            
-            vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
+            print("DEBUG: Creating new FAISS vector store...")
+            vector_store = FAISS.from_texts(text_chunks, self.embeddings)
+            print("✅ DEBUG: New vector store created. Saving to local cache.")
+            vector_store.save_local(cache_path)
             return vector_store
         except Exception as e:
-            error_msg = f"Failed to create the document's searchable index (vector store). The Q&A feature may not work. Error: {e}"
-            print(f"ERROR: {error_msg}")
-            st.warning(error_msg) 
+            error_msg = f"Failed to create and save vector store: {e}"
+            print(f"❌ ERROR: {error_msg}")
+            st.warning("Could not create the document's searchable index. Q&A may be limited.")
             return None
 
-    def retrieve_relevant_chunks(self, query: str) -> str:
-        """
-        Retrieves the most relevant text chunks from the vector store based on the user's query.
+    def _get_semantic_chunks(self, text: str) -> List[str]:
+        if not text or not text.strip():
+            return []
         
-        Args:
-            query: The user's question.
-            
-        Returns:
-            A string containing the concatenated relevant context.
-        """
-        if not self.vector_store:
-            print("DEBUG: Vector store not available. Cannot retrieve chunks.")
+        print("DEBUG: Performing semantic chunking...")
+        text_splitter = SemanticChunker(self.embeddings)
+        chunks = text_splitter.split_text(text)
+        print(f"DEBUG: Text split into {len(chunks)} semantic chunks.")
+        return chunks
+
+    def _initialize_reranker(self, vector_store):
+        print("DEBUG: Initializing CrossEncoder for reranking...")
+        base_retriever = vector_store.as_retriever(search_kwargs={"k": 7})
+        
+        # --- THIS IS THE FIX ---
+        # Instead of creating the raw model, we instantiate the LangChain wrapper.
+        # This wrapper is an instance of BaseCrossEncoder, which satisfies the validation.
+        model = HuggingFaceCrossEncoder(model_name='cross-encoder/ms-marco-MiniLM-L-6-v2')
+        # -----------------------
+        
+        compressor = CrossEncoderReranker(model=model, top_n=3)
+        
+        compression_retriever = ContextualCompressionRetriever(
+            base_compressor=compressor, base_retriever=base_retriever
+        )
+        print("✅ DEBUG: Reranker initialized.")
+        return compression_retriever
+
+    def retrieve_relevant_chunks(self, query: str) -> str:
+        if not self.retriever:
+            print("DEBUG: Retriever not available. Cannot retrieve chunks.")
             return ""
             
         try:
-            docs = self.vector_store.similarity_search(query, k=3)
+            print(f"DEBUG: Performing compressed retrieval (reranking) for query: '{query}'")
+            reranked_docs = self.retriever.get_relevant_documents(query)
             
-            context = "\n\n---\n\n".join([doc.page_content for doc in docs])
-            print(f"DEBUG: Retrieved {len(docs)} relevant chunks for the query.")
+            if not reranked_docs:
+                print("DEBUG: Reranking returned 0 documents.")
+                return ""
+
+            context = "\n\n---\n\n".join([doc.page_content for doc in reranked_docs])
+            print(f"DEBUG: Retrieved {len(reranked_docs)} reranked chunks.")
             return context
         except Exception as e:
-            print(f"ERROR: Failed during similarity search: {e}")
+            print(f"❌ ERROR: Failed during compressed retrieval: {e}")
             return ""
