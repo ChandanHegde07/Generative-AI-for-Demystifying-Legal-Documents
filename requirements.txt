@@ -6,3 +6,7 @@ python-dotenv
 PyPDF2
 numpy
 pandas
+langchain
+langchain-google-genai
+langchain-community
+faiss-cpu

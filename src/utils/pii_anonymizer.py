@@ -1,4 +1,3 @@
-# src/utils/pii_anonymizer.py
 import re
 import hashlib
 from typing import Dict, Tuple, List
@@ -13,7 +12,6 @@ class PIIAnonymizer:
         
     def _generate_placeholder(self, pii_type: str, value: str) -> str:
         """Generate a unique placeholder for a PII value"""
-        # Create a short hash from the value for uniqueness
         hash_suffix = hashlib.md5(value.encode()).hexdigest()[:6].upper()
         placeholder = f"[{pii_type}_{hash_suffix}]"
         return placeholder
@@ -34,19 +32,17 @@ class PIIAnonymizer:
     
     def _detect_and_replace_phones(self, text: str) -> str:
         """Detect and replace phone numbers (Indian and international formats)"""
-        # Indian phone patterns: +91-9876543210, 9876543210, (91) 9876543210, etc.
         phone_patterns = [
-            r'\+91[-\s]?\d{10}',  # +91-9876543210
-            r'\(\+91\)[-\s]?\d{10}',  # (+91) 9876543210
-            r'\b\d{10}\b',  # 9876543210
-            r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b',  # 123-456-7890
+            r'\+91[-\s]?\d{10}',  
+            r'\(\+91\)[-\s]?\d{10}',  
+            r'\b\d{10}\b', 
+            r'\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b',  
         ]
         
         def replace_phone(match):
             phone = match.group(0)
-            # Clean up the phone number
             cleaned = re.sub(r'[-\s\(\)]', '', phone)
-            if len(cleaned) >= 10:  # Valid phone number
+            if len(cleaned) >= 10:  
                 if phone not in self.reverse_mapping:
                     placeholder = self._generate_placeholder("PHONE", phone)
                     self.pii_mapping[placeholder] = phone
@@ -60,13 +56,12 @@ class PIIAnonymizer:
     
     def _detect_and_replace_aadhaar(self, text: str) -> str:
         """Detect and replace Aadhaar numbers (12-digit Indian ID)"""
-        # Aadhaar: 1234 5678 9012 or 123456789012
         aadhaar_pattern = r'\b\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
         
         def replace_aadhaar(match):
             aadhaar = match.group(0)
             cleaned = re.sub(r'[\s-]', '', aadhaar)
-            if len(cleaned) == 12:  # Valid Aadhaar
+            if len(cleaned) == 12:  
                 if aadhaar not in self.reverse_mapping:
                     placeholder = self._generate_placeholder("ID", aadhaar)
                     self.pii_mapping[placeholder] = aadhaar
@@ -78,11 +73,10 @@ class PIIAnonymizer:
     
     def _detect_and_replace_dates(self, text: str) -> str:
         """Detect and replace dates"""
-        # Common date formats: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, Month DD, YYYY
         date_patterns = [
-            r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b',  # DD/MM/YYYY, DD-MM-YYYY
-            r'\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b',  # YYYY-MM-DD
-            r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}\b',  # Month DD, YYYY
+            r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b',  
+            r'\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b',  
+            r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}\b',  
         ]
         
         def replace_date(match):
@@ -99,22 +93,18 @@ class PIIAnonymizer:
     
     def _detect_and_replace_names(self, text: str) -> str:
         """Detect and replace person names using common patterns"""
-        # This is a simple heuristic - for better results, use NER (Named Entity Recognition)
-        # Pattern: Capitalized words that might be names
-        # Common Indian name patterns
         name_patterns = [
-            r'\b(?:Mr\.|Mrs\.|Ms\.|Dr\.|Prof\.)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b',  # Title + Name
-            r'\bPatient:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b',  # Patient: Name
-            r'\bDoctor:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b',  # Doctor: Name
-            r'\bName:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b',  # Name: ...
+            r'\b(?:Mr\.|Mrs\.|Ms\.|Dr\.|Prof\.)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b',  
+            r'\bPatient:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b',  
+            r'\bDoctor:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b',  
+            r'\bName:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b',  
         ]
         
         def replace_name(match):
             name = match.group(1) if match.lastindex else match.group(0)
-            # Remove titles
             name = re.sub(r'^(?:Mr\.|Mrs\.|Ms\.|Dr\.|Prof\.)\s+', '', name)
             
-            if len(name.split()) >= 1 and len(name) > 2:  # Valid name
+            if len(name.split()) >= 1 and len(name) > 2:  
                 if name not in self.reverse_mapping:
                     placeholder = self._generate_placeholder("PERSON", name)
                     self.pii_mapping[placeholder] = name
@@ -137,7 +127,7 @@ class PIIAnonymizer:
             org = match.group(1) if match.lastindex else match.group(0)
             org = org.strip()
             
-            if len(org) > 3:  # Valid organization name
+            if len(org) > 3: 
                 if org not in self.reverse_mapping:
                     placeholder = self._generate_placeholder("ORG", org)
                     self.pii_mapping[placeholder] = org
@@ -160,7 +150,7 @@ class PIIAnonymizer:
             location = match.group(1) if match.lastindex else match.group(0)
             location = location.strip()
             
-            if len(location) > 5:  # Valid location
+            if len(location) > 5:  
                 if location not in self.reverse_mapping:
                     placeholder = self._generate_placeholder("GPE", location)
                     self.pii_mapping[placeholder] = location
@@ -183,12 +173,11 @@ class PIIAnonymizer:
         Returns:
             Tuple of (anonymized_text, pii_mapping)
         """
-        # Only reset mappings if explicitly requested (for new document)
+
         if reset_mappings:
             self.pii_mapping = {}
             self.reverse_mapping = {}
         
-        # Apply all detection and replacement methods in order
         text = self._detect_and_replace_emails(text)
         text = self._detect_and_replace_phones(text)
         text = self._detect_and_replace_aadhaar(text)

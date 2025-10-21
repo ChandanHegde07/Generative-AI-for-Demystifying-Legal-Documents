@@ -7,7 +7,8 @@ import json
 class AIProcessor:
     def __init__(self):
         self.model = Config.initialize_gemini()
-        self.anonymizer = PIIAnonymizer() if Config.ENABLE_PII_ANONYMIZATION else None
+        # This assumes you have an ENABLE_PII_ANONYMIZATION flag in your config.py
+        self.anonymizer = PIIAnonymizer() if getattr(Config, 'ENABLE_PII_ANONYMIZATION', False) else None
         self.current_pii_mapping: Dict[str, str] = {}
     
     def reset_pii_mapping(self):
@@ -22,7 +23,7 @@ class AIProcessor:
         
         # Anonymize content before sending to Gemini (if enabled)
         pii_mapping = {}
-        if self.anonymizer and Config.ENABLE_PII_ANONYMIZATION:
+        if self.anonymizer and getattr(Config, 'ENABLE_PII_ANONYMIZATION', False):
             text_content, pii_mapping = self.anonymizer.anonymize(text_content)
             # Merge with existing mappings to maintain all PII references
             self.current_pii_mapping = {**self.current_pii_mapping, **pii_mapping}
@@ -56,6 +57,8 @@ class AIProcessor:
         except Exception as e:
             raise Exception(f"Gemini API call failed for {system_instruction.split('.')[0]}: {str(e)}")
 
+    # --- All existing methods (classify_document, extract_entities, etc.) are unchanged ---
+    # ... (code for classify_document) ...
     def classify_document(self, text: str) -> Dict[str, Any]:
         prompt_instruction = """
         You are a legal document classification expert. Analyze the provided document and provide its classification.
@@ -69,7 +72,8 @@ class AIProcessor:
             return {"document_type": self._extract_document_type_fallback(str(e)), "confidence": "Medium", "key_indicators": [], "document_structure": "Could not parse structure", "estimated_complexity": "Moderate", "requires_legal_review": True}
         except Exception as e:
             return {"document_type": "Other Legal Document", "confidence": "Low", "error": str(e), "requires_legal_review": True}
-    
+
+    # ... (code for extract_entities) ...
     def extract_entities(self, text: str, doc_type: str, language: str = "English") -> str:
         if doc_type == "Healthcare Document":
             instruction = """
@@ -79,50 +83,12 @@ class AIProcessor:
 
             JSON format should be:
             {{
-                "Insured_Person_Details": {{
-                    "Name": "string",
-                    "IP_No": "string",
-                    "Employer": "string",
-                    "Wage_Period": "string"
-                }},
-                "Treatment_Details": {{
-                    "Hospital": "string",
-                    "Treatment_Date": "string (YYYY-MM-DD)",
-                    "Diagnosis": "string",
-                    "Admission_Type": "string"
-                }},
-                "Claim_Summary": {{
-                    "Consultation_Fee_Eligible_Amount": "float",
-                    "Consultation_Fee_Claimed_Amount": "float",
-                    "Consultation_Fee_Approved_Amount": "float",
-                    "Laboratory_Tests_Eligible_Amount": "float",
-                    "Laboratory_Tests_Claimed_Amount": "float",
-                    "Laboratory_Tests_Approved_Amount": "float",
-                    "Medicines_Eligible_Amount": "float",
-                    "Medicines_Claimed_Amount": "float",
-                    "Medicines_Approved_Amount": "float",
-                    "Injection_Administration_Eligible_Amount": "float",
-                    "Injection_Administration_Claimed_Amount": "float",
-                    "Injection_Administration_Approved_Amount": "float",
-                    "Total_Eligible_Amount": "float",
-                    "Total_Claimed_Amount": "float",
-                    "Total_Approved_Amount": "float",
-                    "Patient_Liability": "float"
-                }},
-                "Payment_Details": {{
-                    "Amount_Approved": "float",
-                    "Amount_Paid": "float",
-                    "Patient_Liability_Payment": "float",
-                    "Payment_Mode": "string",
-                    "UTR_No": "string",
-                    "Date_of_Payment": "string (YYYY-MM-DD)"
-                }},
-                "Deductions_Applied_Summary": [
-                    "bullet point summary of each deduction"
-                ],
-                "Terms_And_Conditions_Summary": [
-                    "bullet point summary of each term and condition"
-                ]
+                "Insured_Person_Details": {{"Name": "string", "IP_No": "string", "Employer": "string", "Wage_Period": "string"}},
+                "Treatment_Details": {{"Hospital": "string", "Treatment_Date": "string (YYYY-MM-DD)", "Diagnosis": "string", "Admission_Type": "string"}},
+                "Claim_Summary": {{"Consultation_Fee_Eligible_Amount": "float", "Consultation_Fee_Claimed_Amount": "float", "Consultation_Fee_Approved_Amount": "float", "Laboratory_Tests_Eligible_Amount": "float", "Laboratory_Tests_Claimed_Amount": "float", "Laboratory_Tests_Approved_Amount": "float", "Medicines_Eligible_Amount": "float", "Medicines_Claimed_Amount": "float", "Medicines_Approved_Amount": "float", "Injection_Administration_Eligible_Amount": "float", "Injection_Administration_Claimed_Amount": "float", "Injection_Administration_Approved_Amount": "float", "Total_Eligible_Amount": "float", "Total_Claimed_Amount": "float", "Total_Approved_Amount": "float", "Patient_Liability": "float"}},
+                "Payment_Details": {{"Amount_Approved": "float", "Amount_Paid": "float", "Patient_Liability_Payment": "float", "Payment_Mode": "string", "UTR_No": "string", "Date_of_Payment": "string (YYYY-MM-DD)"}},
+                "Deductions_Applied_Summary": ["bullet point summary of each deduction"],
+                "Terms_And_Conditions_Summary": ["bullet point summary of each term and condition"]
             }}
             Ensure all float values are parsed as numbers. If a number is indicated by '*', do not include the '*' in the output.
             If a field is mentioned in the JSON schema but not found, set its value to "N/A".
@@ -132,7 +98,6 @@ class AIProcessor:
                 formatted_output = "### Extracted Key Information (Healthcare Document)\n\n"
                 if "error" in extracted_data:
                     return f"**Error:** {extracted_data['error']}\n\n**Raw AI Response:**\n```json\n{extracted_data.get('raw_response', 'N/A')}\n```"
-                
                 for section, data in extracted_data.items():
                     formatted_output += f"**{section.replace('_', ' ')}:**\n"
                     if isinstance(data, dict):
@@ -143,7 +108,6 @@ class AIProcessor:
                             formatted_output += f"- {item}\n"
                     formatted_output += "\n"
                 return formatted_output
-
             except Exception as e:
                 return f"An error occurred during healthcare document extraction: {str(e)}"
         else:
@@ -153,7 +117,8 @@ class AIProcessor:
             Present with bullet points and sections.
             """
             return self._call_gemini(instruction, text, doc_type, language)
-    
+
+    # ... (code for perform_risk_analysis, generate_compliance_checklist, etc.) ...
     def perform_risk_analysis(self, text: str, doc_type: str, language: str = "English") -> str:
         instruction = """
         You are a legal risk assessment specialist. Perform a thorough risk analysis.
@@ -161,7 +126,6 @@ class AIProcessor:
         For each risk, explain: what, why problematic, consequences, recommended actions.
         """
         return self._call_gemini(instruction, text, doc_type, language)
-    
     def generate_compliance_checklist(self, text: str, doc_type: str, language: str = "English") -> str:
         instruction = """
         You are a legal compliance expert. Generate a detailed compliance checklist.
@@ -169,7 +133,6 @@ class AIProcessor:
         Specify for each: requirements, legal basis, consequences, best practices.
         """
         return self._call_gemini(instruction, text, doc_type, language)
-    
     def explain_complex_terms(self, text: str, doc_type: str, language: str = "English") -> str:
         instruction = """
         You are a legal educator. Identify complex legal terms and explain them simply.
@@ -177,7 +140,6 @@ class AIProcessor:
         Focus on jargon, contractual concepts, industry terms, rights/obligations.
         """
         return self._call_gemini(instruction, text, doc_type, language)
-    
     def summarize_document(self, text: str, doc_type: str, language: str = "English") -> str:
         instruction = """
         You are a legal document expert. Create a comprehensive yet accessible summary.
@@ -185,7 +147,6 @@ class AIProcessor:
         Use clear, accessible language; highlight important points.
         """
         return self._call_gemini(instruction, text, doc_type, language)
-    
     def simplify_document(self, text: str, doc_type: str, language: str = "English") -> str:
         instruction = f"""
         You are a legal writing expert. Rewrite this {doc_type} in {language} into plain, everyday language.
@@ -194,7 +155,6 @@ class AIProcessor:
         Structure: What This Document Is About, Who Is Involved, What Each Person/Company Must Do, Dates, Money, What If Wrong, How to Change, Remember.
         """
         return self._call_gemini(instruction, text, doc_type, language)
-    
     def answer_question(self, question: str, document_text: str, doc_type: str, language: str = "English") -> str:
         instruction = f"""
         You are a knowledgeable legal assistant. Answer the user question about their {doc_type}.
@@ -203,13 +163,71 @@ class AIProcessor:
         If not in document, state so, provide general guidance, suggest legal professional.
         """
         return self._call_gemini(instruction, document_text, doc_type, language)
-    
     def _extract_document_type_fallback(self, response_text: str) -> str:
         doc_types = Config.SUPPORTED_DOCUMENT_TYPES 
         return next((dt for dt in doc_types if dt.lower() in response_text.lower()), "Other Legal Document")
-    
     def validate_document_analysis(self, text: str) -> Tuple[bool, str]:
-        if not text or len(text.strip()) < Config.MIN_TEXT_FOR_ANALYSIS: 
-            return False, f"Document too short or insufficient content. Minimum {Config.MIN_TEXT_FOR_ANALYSIS} characters required."
-    
+        # Using getattr for safety in case the config attribute is missing
+        min_len = getattr(Config, 'MIN_TEXT_FOR_ANALYSIS', 50)
+        if not text or len(text.strip()) < min_len: 
+            return False, f"Document too short or insufficient content. Minimum {min_len} characters required."
         return True, "Document is suitable for analysis."
+
+
+    # --- ADD THIS NEW METHOD TO FIX THE RAG IMPLEMENTATION ---
+    def answer_question_with_rag(self, question: str, context: str, language: str = "English") -> str:
+        """
+        Answers a user's question using the context retrieved from the RAG system.
+        This method sends a direct, clean prompt to the model and handles PII.
+        """
+        # 1. Check for empty context from the RAG search
+        if not context or not context.strip():
+            print("DEBUG: No context retrieved from RAG. Returning a direct message.")
+            return f"I could not find any specific information about '{question}' in the document. Please try rephrasing your question."
+
+        # 2. Anonymize the inputs (question + context) if the feature is enabled
+        anonymized_question = question
+        anonymized_context = context
+        if self.anonymizer and getattr(Config, 'ENABLE_PII_ANONYMIZATION', False):
+            print("DEBUG: Anonymizing inputs for RAG call.")
+            # Anonymize question and context. The anonymizer will build up its mapping.
+            anonymized_question, _ = self.anonymizer.anonymize(question)
+            anonymized_context, _ = self.anonymizer.anonymize(context)
+
+        # 3. Construct the clean, focused RAG prompt with potentially anonymized data
+        prompt = f"""
+        You are a highly intelligent legal assistant. Your task is to answer the user's question based *only* on the provided context from a document. Do not use any external knowledge. If the answer is not present in the context, state that clearly.
+
+        **User's Question:**
+        "{anonymized_question}"
+
+        **Context from the Document:**
+        ---
+        {anonymized_context}
+        ---
+
+        **Instructions:**
+        1.  Carefully analyze the "Context from the Document".
+        2.  Formulate a direct and precise answer to the "User's Question" using only the information in the context.
+        3.  If the context does not contain the information needed to answer the question, you MUST respond with: "Based on the provided sections of the document, I could not find an answer to your question."
+        4.  Your entire response must be in the following language: {language}.
+        """
+        
+        try:
+            # 4. Call the model directly with the clean prompt
+            response = self.model.generate_content(prompt)
+            response_text = response.text
+            
+            # 5. Deanonymize the response before returning it
+            final_response = response_text
+            if self.anonymizer and self.current_pii_mapping:
+                print("DEBUG: Deanonymizing RAG response.")
+                final_response = self.anonymizer.deanonymize(response_text, self.current_pii_mapping)
+
+            return final_response
+            
+        except Exception as e:
+            # Handle potential API errors
+            error_message = f"An error occurred while communicating with the AI to answer the question: {str(e)}"
+            print(f"ERROR: {error_message}")
+            return error_message

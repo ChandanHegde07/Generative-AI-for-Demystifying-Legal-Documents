@@ -9,9 +9,9 @@ load_dotenv()
 class Config:
     _GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
     if not _GEMINI_API_KEY:
-        raise ValueError("Google API key not found. Set it in .env (local) or Streamlit Secrets (cloud).")
+        raise ValueError("Google API key not found. Please set it in your .env file or Streamlit Secrets.")
 
-    GEMINI_MODEL_NAME: str = "gemini-2.0-flash-lite"
+    GEMINI_MODEL_NAME: str = "gemini-1.5-flash-latest" 
     GEMINI_TEMPERATURE: float = 0.1
     GEMINI_MAX_OUTPUT_TOKENS: int = 8192
     GEMINI_TOP_K: int = 40
@@ -22,35 +22,18 @@ class Config:
         genai.configure(api_key=Config._GEMINI_API_KEY)
         return genai.GenerativeModel(Config.GEMINI_MODEL_NAME)
 
-    # OCR Configuration
-    OCR_ENABLED: bool = True
-    VISION_CLIENT = None
-    
-    @staticmethod
-    def initialize_vision():
-        """Initialize Google Cloud Vision API client"""
-        try:
-            from google.cloud import vision
-            # Vision API will use the same Google API key via application default credentials
-            # or you can set GOOGLE_APPLICATION_CREDENTIALS environment variable
-            return vision.ImageAnnotatorClient()
-        except Exception as e:
-            print(f"Warning: Could not initialize Vision API: {str(e)}")
-            print("Falling back to Pillow for image processing")
-            return None
-    
-    TRANSLATE_CLIENT = None   
+    EMBEDDING_MODEL_NAME: str = "models/embedding-001" 
+
+    USE_GOOGLE_VISION_OCR: bool = True 
+
+    MAX_DOCUMENT_LENGTH: int = 300000 
+    MIN_TEXT_FOR_ANALYSIS: int = 50 
+
+    ENABLE_PII_ANONYMIZATION: bool = True 
+    SHOW_PII_MAPPING: bool = False 
 
     LANG_MAP: Dict[str, str] = {"English": "en", "Hindi": "hi", "Kannada": "kn"}
     SUPPORTED_LANGUAGES: List[str] = list(LANG_MAP.keys())
-
-    MAX_DOCUMENT_LENGTH: int = 300000 
-    MIN_TEXT_FOR_ANALYSIS: int = 0 
-    
-    # PII Anonymization
-    ENABLE_PII_ANONYMIZATION: bool = True  # Toggle PII detection and replacement
-    SHOW_PII_MAPPING: bool = True  # Show the PII mapping to users
-
     SUPPORTED_DOCUMENT_TYPES: List[str] = [
         "Contract Agreement", "Legal Notice", "Terms of Service", "Privacy Policy",
         "Employment Agreement", "Insurance Policy", "Healthcare Document",
@@ -75,7 +58,12 @@ class Config:
             return False, "No file provided."
 
         MAX_FILE_SIZE_MB = 25
-        if len(uploaded_file.getvalue()) > MAX_FILE_SIZE_MB * 1024 * 1024:
+        try:
+            file_size = len(uploaded_file.getvalue())
+        except Exception:
+            file_size = uploaded_file.size
+
+        if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
             return False, f"File size exceeds {MAX_FILE_SIZE_MB}MB limit."
 
         supported_mime_types = ["application/pdf", "image/jpeg", "image/png", "image/gif", "text/plain"]

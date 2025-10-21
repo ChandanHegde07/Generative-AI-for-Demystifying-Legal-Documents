@@ -6,7 +6,7 @@ __pycache__/
 *.sqlite3
 
 # Virtual environment (your venv)
-gen/
+venv/
 
 # Environment variables
 .env

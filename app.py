@@ -5,6 +5,7 @@ from functools import lru_cache
 from src.config import Config
 from src.services.ai_processor import AIProcessor
 from src.services.chat_service import ChatService
+from src.services.rag_service import RAGService # <-- ADDED
 from src.utils.document_parser import DocumentParser
 from src.utils.translator import GeminiTranslator
 
@@ -58,212 +59,75 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.5px;
 }
 strong { color: #FFFFFF; }
-
-[data-testid="stSidebar"] {
-    display: none;
-}
-
-/* File Uploader styling */
+[data-testid="stSidebar"] { display: none; }
 div[data-testid="stFileUploader"] {
-    border: 2px dashed #00B4D8;
-    border-radius: 10px;
-    background: #2A2A47;
-    padding: 12px;
-    margin-top: 12px;
-    margin-bottom: 0.2em;
-    min-height: 130px;
+    border: 2px dashed #00B4D8; border-radius: 10px; background: #2A2A47;
+    padding: 12px; margin-top: 12px; margin-bottom: 0.2em; min-height: 130px;
 }
 div[data-testid="stFileUploader"]:hover {
-    border-color: #6A05AD;
-    background: #303050;
-    box-shadow: 0 0 8px rgba(0, 180, 216, 0.2);
+    border-color: #6A05AD; background: #303050; box-shadow: 0 0 8px rgba(0, 180, 216, 0.2);
 }
-.stFileUploader label {
-    font-size: 0.9em;
-    margin-bottom: 6px;
-}
-div[data-testid="stFileUploader"] .st-emotion-cache-1wmy9hp p {
-    font-size: 0.9em;
-    margin-bottom: 0;
-}
-div[data-testid="stFileUploader"] .st-emotion-cache-1wmy9hp > div:last-of-type {
-    font-size: 0.75em;
-    margin-top: 1px;
-}
-
+.stFileUploader label { font-size: 0.9em; margin-bottom: 6px; }
+div[data-testid="stFileUploader"] .st-emotion-cache-1wmy9hp p { font-size: 0.9em; margin-bottom: 0; }
+div[data-testid="stFileUploader"] .st-emotion-cache-1wmy9hp > div:last-of-type { font-size: 0.75em; margin-top: 1px; }
 .stFileUploader button {
-    padding: 5px 15px !important;
-    margin-top: 6px;
-    font-size: 0.85em;
+    padding: 5px 15px !important; margin-top: 6px; font-size: 0.85em;
 }
 .stFileUploader button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0px 2px 8px rgba(106, 5, 173, 0.25) !important;
+    transform: translateY(-1px); box-shadow: 0px 2px 8px rgba(106, 5, 173, 0.25) !important;
 }
-
 div[data-testid="stFileUploadProgress"] {
-    padding: 5px 8px;
-    margin-top: 6px;
-    font-size: 0.85em;
+    padding: 5px 8px; margin-top: 6px; font-size: 0.85em;
 }
-div[data-testid="stFileUploadProgress"] div:first-child {
-    gap: 5px;
-    font-size: 0.85em;
-}
-div[data-testid="stFileUploadProgress"] svg {
-    font-size: 0.9em;
-}
+div[data-testid="stFileUploadProgress"] div:first-child { gap: 5px; font-size: 0.85em; }
+div[data-testid="stFileUploadProgress"] svg { font-size: 0.9em; }
 button[data-testid="stFileUploaderClearButton"] {
-    width: 22px !important;
-    height: 22px !important;
-    font-size: 0.9em !important;
+    width: 22px !important; height: 22px !important; font-size: 0.9em !important;
 }
-
-/* Header styling */
 .app-header {
-    padding: 20px;
-    font-size: 32px;
-    margin-bottom: 30px;
-    gap: 10px;
-    text-align: center;
-    background-color: #2A2A47;
-    border: 2px solid #00B4D8;
-    border-radius: 15px;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 20px; font-size: 32px; margin-bottom: 30px; gap: 10px; text-align: center;
+    background-color: #2A2A47; border: 2px solid #00B4D8; border-radius: 15px; max-width: 800px;
+    margin-left: auto; margin-right: auto; display: flex; align-items: center; justify-content: center;
 }
-.app-header svg {
-    font-size: 34px;
-    margin-right: 10px;
-}
-
-/* Button styling */
+.app-header svg { font-size: 34px; margin-right: 10px; }
 .stButton>button {
-    padding: 0.6em 1.3em;
-    font-size: 0.9em;
-    margin-top: 6px;
-    margin-bottom: 6px;
+    padding: 0.6em 1.3em; font-size: 0.9em; margin-top: 6px; margin-bottom: 6px;
 }
-.stButton>button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0px 3px 10px rgba(106, 5, 173, 0.3);
-}
-
-/* Chat bubble styling */
+.stButton>button:hover { transform: translateY(-1px); box-shadow: 0px 3px 10px rgba(106, 5, 173, 0.3); }
 .chat-bubble-user, .chat-bubble-ai {
-    padding: 10px 15px;
-    border-radius: 18px 18px 7px 18px;
-    margin: 6px 0;
-    font-size: 0.9em;
+    padding: 10px 15px; border-radius: 18px 18px 7px 18px; margin: 6px 0; font-size: 0.9em;
 }
-.chat-bubble-ai {
-    border-radius: 18px 18px 18px 7px;
-}
-
-/* Tabs styling */
-.stTabs [data-testid="stTabContent"] {
-    padding: 1rem 0;
-}
-.stTabs [data-testid="stTab"] {
-    margin-right: 6px;
-    padding: 10px 20px;
-    font-size: 1em;
-}
-.stTabs [data-testid="stTab"][aria-selected="true"] {
-    box-shadow: 0px -2px 8px rgba(0, 180, 216, 0.25);
-}
-
-/* Input Fields styling */
-div[data-testid="stSelectbox"] > label,
-div[data-testid="stTextInput"] label {
-    margin-bottom: 4px;
-    font-size: 0.9em;
-}
-
+.chat-bubble-ai { border-radius: 18px 18px 18px 7px; }
+.stTabs [data-testid="stTabContent"] { padding: 1rem 0; }
+.stTabs [data-testid="stTab"] { margin-right: 6px; padding: 10px 20px; font-size: 1em; }
+.stTabs [data-testid="stTab"][aria-selected="true"] { box-shadow: 0px -2px 8px rgba(0, 180, 216, 0.25); }
+div[data-testid="stSelectbox"] > label, div[data-testid="stTextInput"] label { margin-bottom: 4px; font-size: 0.9em; }
 div[data-testid="stSelectbox"] div.st-emotion-cache-1wv8cff,
-div[data-testid="stSelectbox"] div.st-emotion-cache-1wv8cff > div {
-    padding: 0.4em 0.8em;
-}
+div[data-testid="stSelectbox"] div.st-emotion-cache-1wv8cff > div { padding: 0.4em 0.8em; }
 div[data-testid="stTextInput"] div.st-emotion-cache-1c7y2k2,
-div[data-testid="stTextInput"] div.st-emotion-cache-h5rpjc {
-    padding: 0.4em 0.8em;
-}
-div[data-testid="stTextInput"] textarea,
-div[data-testid="stTextInput"] input {
-    font-size: 0.9em;
-}
-
-/* Status messages */
-.stAlert {
-    padding: 10px 15px;
-    margin-bottom: 10px;
-    font-size: 0.9em;
-}
-
-/* Spinner styling */
-.stSpinner > div > div {
-    font-size: 0.9em;
-}
-
-/* Code block styling */
-div.stCodeBlock {
-    padding: 10px;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    font-size: 0.8em;
-}
-
-/* Footer */
+div[data-testid="stTextInput"] div.st-emotion-cache-h5rpjc { padding: 0.4em 0.8em; }
+div[data-testid="stTextInput"] textarea, div[data-testid="stTextInput"] input { font-size: 0.9em; }
+.stAlert { padding: 10px 15px; margin-bottom: 10px; font-size: 0.9em; }
+.stSpinner > div > div { font-size: 0.9em; }
+div.stCodeBlock { padding: 10px; margin-top: 10px; margin-bottom: 10px; font-size: 0.8em; }
 .footer {
-    padding: 18px 20px;
-    font-size: 11px;
-    margin-top: 30px;
-    text-align: center;
-    background-color: #2A2A47;
-    border: 1px solid #00B4D8;
-    border-radius: 8px;
-    margin-left: -20px;
-    margin-right: -20px;
-    width: calc(100% + 40px);
-    position: relative;
-    box-sizing: border-box;
+    padding: 18px 20px; font-size: 11px; margin-top: 30px; text-align: center;
+    background-color: #2A2A47; border: 1px solid #00B4D8; border-radius: 8px;
+    margin-left: -20px; margin-right: -20px; width: calc(100% + 40px);
+    position: relative; box-sizing: border-box;
 }
-
-/* Streamlit container overrides */
-.st-emotion-cache-nahz7x {
-    padding-top: 0.2rem;
-    padding-bottom: 0.2rem;
-}
-.st-emotion-cache-czk5ad.ezrtsby2 {
-    gap: 0.2rem;
-}
-.st-emotion-cache-ocqkz7 {
-    padding-top: 0.2rem;
-    padding-bottom: 0.2rem;
-}
-.st-emotion-cache-1jm61g7 {
-    margin-bottom: 0.2rem;
-}
-h2[data-testid="stMarkdownContainer"]:nth-of-type(1) {
-    margin-bottom: 0.4em !important;
-}
-h3[data-testid="stMarkdownContainer"]:nth-of-type(1) {
-    margin-bottom: 0.1em !important;
-}
-h3[data-testid="stMarkdownContainer"]:nth-of-type(2) {
-    margin-top: 0.4em !important;
-    margin-bottom: 0.1em !important;
-}
+.st-emotion-cache-nahz7x { padding-top: 0.2rem; padding-bottom: 0.2rem; }
+.st-emotion-cache-czk5ad.ezrtsby2 { gap: 0.2rem; }
+.st-emotion-cache-ocqkz7 { padding-top: 0.2rem; padding-bottom: 0.2rem; }
+.st-emotion-cache-1jm61g7 { margin-bottom: 0.2rem; }
+h2[data-testid="stMarkdownContainer"]:nth-of-type(1) { margin-bottom: 0.4em !important; }
+h3[data-testid="stMarkdownContainer"]:nth-of-type(1) { margin-bottom: 0.1em !important; }
+h3[data-testid="stMarkdownContainer"]:nth-of-type(2) { margin-top: 0.4em !important; margin-bottom: 0.1em !important; }
 </style>"""
 
 st.markdown(get_custom_css(), unsafe_allow_html=True)
 
 def init_session_state():
-    
     defaults = {
         'chat_history': [],
         'action_outputs': {},
@@ -271,7 +135,8 @@ def init_session_state():
         'document_text': None,
         'doc_type': "Unknown",
         'lang': "English",
-        'uploaded_files_key': 0
+        'uploaded_files_key': 0,
+        'rag_service': None 
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -285,6 +150,7 @@ def reset_app_state():
     st.session_state.doc_type = "Unknown"
     st.session_state.chat_history = []
     st.session_state.action_outputs = {}
+    st.session_state.rag_service = None 
     st.session_state.uploaded_files_key += 1
 
 @st.cache_data
@@ -300,7 +166,6 @@ if not st.session_state.document_processed:
 
     with center_col:
         st.markdown("### <div style='text-align: center; margin-bottom: 0.1em;'>Upload Healthcare Document(s)</div>", unsafe_allow_html=True)
-
         uploaded_files = st.file_uploader(
             "Drag and drop your healthcare document(s) (PDF, JPEG, or PNG) here",
             type=["pdf", "jpg", "jpeg", "png", "txt"],
@@ -308,18 +173,14 @@ if not st.session_state.document_processed:
             key=f"file_uploader_initial_{st.session_state.uploaded_files_key}",
             label_visibility="collapsed"
         )
-
         st.markdown("### <div style='text-align: center; margin-top: 0.3em; margin-bottom: 0.1em;'>Answer Language</div>", unsafe_allow_html=True)
         lang_col_left, lang_col_center_inner, lang_col_right = st.columns([0.5, 2, 0.5])
         with lang_col_center_inner:
             st.session_state.lang = st.selectbox(
-                "Select Language for AI Responses",
-                SUPPORTED_LANGUAGES,
-                key="lang_select_initial",
+                "Select Language for AI Responses", SUPPORTED_LANGUAGES, key="lang_select_initial",
                 label_visibility="collapsed",
                 index=SUPPORTED_LANGUAGES.index(st.session_state.lang) if st.session_state.lang in SUPPORTED_LANGUAGES else 0
             )
-
         st.markdown(
             "<p style='text-align: center; margin-top: 0.5em; color: #A0A0B5; font-size: 0.9em;'>"
             "Upload <strong>one or more</strong> healthcare documents (insurance policies, medical reports, prescriptions) in PDF, JPEG, PNG, or TXT format above. "
@@ -333,9 +194,6 @@ if not st.session_state.document_processed:
         if 'last_processed_file_ids' not in st.session_state or st.session_state.last_processed_file_ids != current_file_ids:
             st.session_state.last_processed_file_ids = current_file_ids
             
-            ai_processor.reset_pii_mapping()
-            chat_service.reset_pii_mapping()
-
             num_files = len(uploaded_files)
             status_msg = "1 healthcare document uploaded successfully! Processing..." if num_files == 1 else f"{num_files} healthcare documents uploaded successfully! Text extraction initiated..."
             st.success(status_msg)
@@ -370,16 +228,19 @@ if not st.session_state.document_processed:
                 is_valid, validation_msg = doc_parser.validate_extracted_text(processed_text)
 
                 if is_valid:
-                    with st.spinner("Classifying document type..."):
+                    with st.spinner("Classifying document type and preparing for Q&A..."):
                         classification_result = ai_processor.classify_document(processed_text)
                         doc_type = classification_result.get("document_type", "Other Legal Document")
+
+                        rag_service = RAGService(processed_text)
 
                     st.session_state.update({
                         'document_text': processed_text,
                         'doc_type': doc_type,
                         'document_processed': True,
                         'chat_history': [],
-                        'action_outputs': {}
+                        'action_outputs': {},
+                        'rag_service': rag_service 
                     })
                     st.rerun()
                 else:
@@ -396,10 +257,7 @@ else:
     with header_col_lang:
         st.markdown("<span style='color: #E0E0F0; margin-right: 6px; font-weight: 600; font-size: 0.9em; display: block; margin-bottom: 0.5em;'>Language:</span>", unsafe_allow_html=True)
         st.session_state.lang = st.selectbox(
-            "Answer Language",
-            SUPPORTED_LANGUAGES,
-            key="lang_select_persistent",
-            label_visibility="collapsed",
+            "Answer Language", SUPPORTED_LANGUAGES, key="lang_select_persistent", label_visibility="collapsed",
             index=SUPPORTED_LANGUAGES.index(st.session_state.lang) if st.session_state.lang in SUPPORTED_LANGUAGES else 0
         )
     
@@ -432,48 +290,28 @@ else:
                 chat_service.set_document_context(document_text, doc_type)
                 result = method(document_text, doc_type, st.session_state.lang)
                 st.session_state.action_outputs[action_key] = {
-                    "type": output_type, 
-                    "header": header_text, 
-                    "content": result
+                    "type": output_type, "header": header_text, "content": result
                 }
             st.rerun()
 
         with col1:
             if st.button("Extract Key Information", use_container_width=True, key="btn_key_info"):
-                handle_action("key_info", "Extracting key entities...", 
-                            ai_processor.extract_entities, "success", 
-                            "Key Information Extracted Successfully!")
-
+                handle_action("key_info", "Extracting key entities...", ai_processor.extract_entities, "success", "Key Information Extracted Successfully!")
             if st.button("Risk Assessment", use_container_width=True, key="btn_risk_assessment"):
-                handle_action("risk_assessment", "Performing risk assessment...", 
-                            ai_processor.perform_risk_analysis, "warning", 
-                            "Risk Assessment Complete:")
-
+                handle_action("risk_assessment", "Performing risk assessment...", ai_processor.perform_risk_analysis, "warning", "Risk Assessment Complete:")
             if st.button("Explain Complex Terms", use_container_width=True, key="btn_explain_terms"):
-                handle_action("explain_terms", "Explaining complex terms...", 
-                            ai_processor.explain_complex_terms, "info", 
-                            "Complex Terms Explained:")
-
+                handle_action("explain_terms", "Explaining complex terms...", ai_processor.explain_complex_terms, "info", "Complex Terms Explained:")
         with col2:
             if st.button("Generate Compliance Checklist", use_container_width=True, key="btn_checklist"):
-                handle_action("compliance_checklist", "Generating compliance checklist...", 
-                            ai_processor.generate_compliance_checklist, "success", 
-                            "Compliance Checklist Generated:")
-
+                handle_action("compliance_checklist", "Generating compliance checklist...", ai_processor.generate_compliance_checklist, "success", "Compliance Checklist Generated:")
             if st.button("Summarize Document", use_container_width=True, key="btn_summarize"):
-                handle_action("summarize_document", "Summarizing document...", 
-                            ai_processor.summarize_document, "success", 
-                            "Document Summarized:")
-
+                handle_action("summarize_document", "Summarizing document...", ai_processor.summarize_document, "success", "Document Summarized:")
             if st.button("Simplify Document", use_container_width=True, key="btn_simplify"):
-                handle_action("simplify_document", "Simplifying text...", 
-                            ai_processor.simplify_document, "info", 
-                            "Document Simplified (Plain Language):")
+                handle_action("simplify_document", "Simplifying text...", ai_processor.simplify_document, "info", "Document Simplified (Plain Language):")
 
         if st.session_state.action_outputs:
             st.markdown("<div style='border-top: 1px solid #353550; margin-top: 1em; margin-bottom: 1em;'></div>", unsafe_allow_html=True)
             st.subheader("Results:")
-            
             for key, output in st.session_state.action_outputs.items():
                 msg_func = {"success": st.success, "warning": st.warning, "info": st.info}[output["type"]]
                 msg_func(output["header"])
@@ -492,15 +330,13 @@ else:
             st.markdown(f'<div class="{bubble_class}">{entry["content"]}</div>', unsafe_allow_html=True)
 
         st.markdown("<div style='height: 5px;'></div>", unsafe_allow_html=True)
-        user_input = st.text_input("Type your question...", key="chat_input", 
-                                   placeholder="e.g., What are the key responsibilities of Party A?")
+        user_input = st.text_input("Type your question...", key="chat_input", placeholder="e.g., What are the key responsibilities of Party A?")
 
         col_ask, _ = st.columns([0.2, 0.8])
         with col_ask:
             if st.button("Ask", key="ask_button", use_container_width=True):
                 if user_input:
                     st.session_state.chat_history.append({"role": "user", "content": user_input})
-
                     with st.spinner("Processing your query..."):
                         response = chat_service.ask_question(user_input, language=st.session_state.lang)
                         st.session_state.chat_history.append({"role": "ai", "content": response})

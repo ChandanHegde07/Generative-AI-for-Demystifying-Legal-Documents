@@ -5,12 +5,10 @@ Run this from the project root: python update_parser.py
 
 import os
 
-# Read the current file
 file_path = r'src\utils\document_parser.py'
 with open(file_path, 'r', encoding='utf-8') as f:
     content = f.read()
 
-# Find and replace the extract_text_from_file method
 old_method = '''    def extract_text_from_file(self, uploaded_file: Any) -> str:
         """Extract text from a single uploaded file"""
         if uploaded_file.type == "application/pdf":
@@ -56,7 +54,6 @@ new_methods = '''    def extract_text_from_file(self, uploaded_file: Any) -> str
             return self.anonymizer.deanonymize(text, self.pii_mapping)
         return text'''
 
-# Replace
 if old_method in content:
     content = content.replace(old_method, new_methods)
     
