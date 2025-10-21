@@ -7,7 +7,6 @@ import json
 class AIProcessor:
     def __init__(self):
         self.model = Config.initialize_gemini()
-        # This assumes you have an ENABLE_PII_ANONYMIZATION flag in your config.py
         self.anonymizer = PIIAnonymizer() if getattr(Config, 'ENABLE_PII_ANONYMIZATION', False) else None
         self.current_pii_mapping: Dict[str, str] = {}
     
@@ -21,11 +20,9 @@ class AIProcessor:
     def _call_gemini(self, system_instruction: str, content: str, doc_type: str = "", language: str = "English", json_output: bool = False, truncate_text_to: Optional[int] = None, image_data=None) -> Any:
         text_content = content[:truncate_text_to] if truncate_text_to else content
         
-        # Anonymize content before sending to Gemini (if enabled)
         pii_mapping = {}
         if self.anonymizer and getattr(Config, 'ENABLE_PII_ANONYMIZATION', False):
             text_content, pii_mapping = self.anonymizer.anonymize(text_content)
-            # Merge with existing mappings to maintain all PII references
             self.current_pii_mapping = {**self.current_pii_mapping, **pii_mapping}
         
         full_prompt = f"""
@@ -42,7 +39,6 @@ class AIProcessor:
             else:
                 response = self.model.generate_content(full_prompt)
             
-            # Deanonymize response before returning (restore original PII)
             response_text = response.text
             if self.anonymizer and self.current_pii_mapping:
                 response_text = self.anonymizer.deanonymize(response_text, self.current_pii_mapping)
@@ -57,8 +53,6 @@ class AIProcessor:
         except Exception as e:
             raise Exception(f"Gemini API call failed for {system_instruction.split('.')[0]}: {str(e)}")
 
-    # --- All existing methods (classify_document, extract_entities, etc.) are unchanged ---
-    # ... (code for classify_document) ...
     def classify_document(self, text: str) -> Dict[str, Any]:
         prompt_instruction = """
         You are a legal document classification expert. Analyze the provided document and provide its classification.
@@ -73,14 +67,12 @@ class AIProcessor:
         except Exception as e:
             return {"document_type": "Other Legal Document", "confidence": "Low", "error": str(e), "requires_legal_review": True}
 
-    # ... (code for extract_entities) ...
     def extract_entities(self, text: str, doc_type: str, language: str = "English") -> str:
         if doc_type == "Healthcare Document":
             instruction = """
             You are a healthcare document analysis expert. Extract detailed information from the provided healthcare document, specifically a Medical Care Reimbursement Claim.
             Extract the following fields accurately. If a field is not present, use "N/A".
             Provide the output in a JSON format.
-
             JSON format should be:
             {{
                 "Insured_Person_Details": {{"Name": "string", "IP_No": "string", "Employer": "string", "Wage_Period": "string"}},
@@ -118,83 +110,49 @@ class AIProcessor:
             """
             return self._call_gemini(instruction, text, doc_type, language)
 
-    # ... (code for perform_risk_analysis, generate_compliance_checklist, etc.) ...
     def perform_risk_analysis(self, text: str, doc_type: str, language: str = "English") -> str:
-        instruction = """
-        You are a legal risk assessment specialist. Perform a thorough risk analysis.
-        Structure: HIGH RISK, MEDIUM RISK, LOW RISK, MITIGATION RECOMMENDATIONS, ⚖️ LEGAL ADVICE.
-        For each risk, explain: what, why problematic, consequences, recommended actions.
-        """
+        instruction = "..."
         return self._call_gemini(instruction, text, doc_type, language)
     def generate_compliance_checklist(self, text: str, doc_type: str, language: str = "English") -> str:
-        instruction = """
-        You are a legal compliance expert. Generate a detailed compliance checklist.
-        Organize by: PRE-EXECUTION, EXECUTION, ONGOING, PERIODIC REVIEW, DOCUMENTATION, BREACH MONITORING, AMENDMENT, TERMINATION.
-        Specify for each: requirements, legal basis, consequences, best practices.
-        """
+        instruction = "..."
         return self._call_gemini(instruction, text, doc_type, language)
     def explain_complex_terms(self, text: str, doc_type: str, language: str = "English") -> str:
-        instruction = """
-        You are a legal educator. Identify complex legal terms and explain them simply.
-        For each term: Simple Definition, In This Context, Why It Matters, Example, Red Flags.
-        Focus on jargon, contractual concepts, industry terms, rights/obligations.
-        """
+        instruction = "..."
         return self._call_gemini(instruction, text, doc_type, language)
     def summarize_document(self, text: str, doc_type: str, language: str = "English") -> str:
-        instruction = """
-        You are a legal document expert. Create a comprehensive yet accessible summary.
-        Structure: OVERVIEW, OBJECTIVES, PARTIES/RESPONSIBILITIES, FINANCIAL, DATES, LEGAL FRAMEWORK, RISKS, NEXT STEPS.
-        Use clear, accessible language; highlight important points.
-        """
+        instruction = "..."
         return self._call_gemini(instruction, text, doc_type, language)
     def simplify_document(self, text: str, doc_type: str, language: str = "English") -> str:
-        instruction = f"""
-        You are a legal writing expert. Rewrite this {doc_type} in {language} into plain, everyday language.
-        Guidelines: replace jargon, shorter sentences, active voice, conversational tone, explain concepts, use "you", add explanations in [ ], clear headings.
-        Example: "The party of the first part" → "You".
-        Structure: What This Document Is About, Who Is Involved, What Each Person/Company Must Do, Dates, Money, What If Wrong, How to Change, Remember.
-        """
+        instruction = "..."
         return self._call_gemini(instruction, text, doc_type, language)
     def answer_question(self, question: str, document_text: str, doc_type: str, language: str = "English") -> str:
-        instruction = f"""
-        You are a knowledgeable legal assistant. Answer the user question about their {doc_type}.
-        Question: {question}
-        Guidelines: Direct Answer, Document Reference, Explanation, Practical Implications, Additional Context, Warnings/Cautions.
-        If not in document, state so, provide general guidance, suggest legal professional.
-        """
+        instruction = "..."
         return self._call_gemini(instruction, document_text, doc_type, language)
     def _extract_document_type_fallback(self, response_text: str) -> str:
         doc_types = Config.SUPPORTED_DOCUMENT_TYPES 
         return next((dt for dt in doc_types if dt.lower() in response_text.lower()), "Other Legal Document")
     def validate_document_analysis(self, text: str) -> Tuple[bool, str]:
-        # Using getattr for safety in case the config attribute is missing
         min_len = getattr(Config, 'MIN_TEXT_FOR_ANALYSIS', 50)
         if not text or len(text.strip()) < min_len: 
             return False, f"Document too short or insufficient content. Minimum {min_len} characters required."
         return True, "Document is suitable for analysis."
 
-
-    # --- ADD THIS NEW METHOD TO FIX THE RAG IMPLEMENTATION ---
     def answer_question_with_rag(self, question: str, context: str, language: str = "English") -> str:
         """
         Answers a user's question using the context retrieved from the RAG system.
         This method sends a direct, clean prompt to the model and handles PII.
         """
-        # 1. Check for empty context from the RAG search
         if not context or not context.strip():
             print("DEBUG: No context retrieved from RAG. Returning a direct message.")
             return f"I could not find any specific information about '{question}' in the document. Please try rephrasing your question."
 
-        # 2. Anonymize the inputs (question + context) if the feature is enabled
         anonymized_question = question
         anonymized_context = context
         if self.anonymizer and getattr(Config, 'ENABLE_PII_ANONYMIZATION', False):
             print("DEBUG: Anonymizing inputs for RAG call.")
-            # Anonymize question and context. The anonymizer will build up its mapping.
             anonymized_question, _ = self.anonymizer.anonymize(question)
             anonymized_context, _ = self.anonymizer.anonymize(context)
 
-        # 3. Construct the clean, focused RAG prompt with potentially anonymized data
         prompt = f"""
         You are a highly intelligent legal assistant. Your task is to answer the user's question based *only* on the provided context from a document. Do not use any external knowledge. If the answer is not present in the context, state that clearly.
 
@@ -214,11 +172,9 @@ class AIProcessor:
         """
         
         try:
-            # 4. Call the model directly with the clean prompt
             response = self.model.generate_content(prompt)
             response_text = response.text
             
-            # 5. Deanonymize the response before returning it
             final_response = response_text
             if self.anonymizer and self.current_pii_mapping:
                 print("DEBUG: Deanonymizing RAG response.")
@@ -227,7 +183,6 @@ class AIProcessor:
             return final_response
             
         except Exception as e:
-            # Handle potential API errors
             error_message = f"An error occurred while communicating with the AI to answer the question: {str(e)}"
             print(f"ERROR: {error_message}")
             return error_message
