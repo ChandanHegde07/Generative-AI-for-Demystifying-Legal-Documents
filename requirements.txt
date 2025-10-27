@@ -1,15 +1,25 @@
+# --- Streamlit (for your original frontend) ---
 streamlit
+
+# --- Google AI & Cloud ---
 google-generativeai
 google-cloud-vision
+
+# --- Document Processing ---
+PyMuPDF
 Pillow
-python-dotenv
-PyPDF2
-numpy
-pandas
+
+# --- LangChain & RAG ---
 langchain
+langchain-core
 langchain-google-genai
 langchain-community
+langchain-experimental
 faiss-cpu
-PyMuPDF
-langchain-experimental  
 sentence-transformers
+
+# --- Utilities ---
+numpy
+pandas
+pydantic
+python-dotenv
