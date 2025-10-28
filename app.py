@@ -51,9 +51,9 @@ def get_custom_css():
 }
 
 html, body, .main, .block-container {
-    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    background: linear-gradient(135deg, #0a0118 0%, #1a0d2e 50%, #16003b 100%);
     background-attachment: fixed;
-    color: #E8EAF6;
+    color: #FFFFFF;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     line-height: 1.7;
     scroll-behavior: smooth;
@@ -61,11 +61,35 @@ html, body, .main, .block-container {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Animated particles background */
+body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(0, 245, 255, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(192, 38, 211, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(192, 38, 211, 0.08) 0%, transparent 50%);
+    animation: rotate 30s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* ==================== LAYOUT CONTAINER ==================== */
 .block-container {
     max-width: 1600px !important;
     padding: 3rem 4rem !important;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
 /* Hide Streamlit branding */
@@ -78,7 +102,12 @@ html, body, .main, .block-container {
     display: none;
 }
 
-/* ==================== TYPOGRAPHY SYSTEM ==================== */
+/* ==================== CRITICAL TEXT VISIBILITY FIXES ==================== */
+/* Base text colors - CRITICAL */
+div, span, label, li, p, input, textarea, select, option {
+    color: #FFFFFF !important;
+}
+
 h1, h2, h3, h4, h5, h6 {
     color: #FFFFFF !important;
     font-weight: 700;
@@ -91,33 +120,21 @@ h1 { font-size: 3rem; }
 h2 { font-size: 2.2rem; }
 h3 { font-size: 1.6rem; }
 
-p {
-    font-size: 1.05rem;
-    margin-bottom: 1rem;
-    color: #E8EAF6 !important;
-    line-height: 1.7;
-}
-
 strong {
     color: #FFFFFF !important;
     font-weight: 600;
 }
 
-/* Universal text visibility */
-div, span, label, li {
-    color: #E8EAF6 !important;
-}
-
 /* ==================== HERO HEADER ==================== */
 .hero-header {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-    border: 2px solid rgba(102, 126, 234, 0.4);
-    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(0, 245, 255, 0.08) 0%, rgba(192, 38, 211, 0.08) 100%);
+    border: 2px solid rgba(0, 245, 255, 0.3);
+    border-radius: 28px;
     padding: 3.5rem 2rem;
     text-align: center;
     margin-bottom: 3rem;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(30px);
     animation: fadeInScale 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -130,27 +147,25 @@ div, span, label, li {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(0, 245, 255, 0.1) 0%, transparent 70%);
     animation: rotate 20s linear infinite;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 
 .hero-header h1 {
     font-size: 3rem;
     margin-bottom: 0.5rem;
-    text-shadow: 0 2px 20px rgba(102, 126, 234, 0.6);
-    color: #FFFFFF !important;
+    text-shadow: 0 2px 20px rgba(0, 245, 255, 0.6);
+    background: linear-gradient(135deg, #00F5FF 0%, #C026D3 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     position: relative;
     z-index: 1;
 }
 
 .hero-header p {
     font-size: 1.2rem;
-    color: #D1C4E9 !important;
+    color: #B4B4D4 !important;
     margin-top: 0.5rem;
     position: relative;
     z-index: 1;
@@ -169,9 +184,9 @@ div, span, label, li {
 
 /* ==================== UPLOAD SECTION ==================== */
 .upload-section {
-    background: rgba(255, 255, 255, 0.03);
-    border: 2px solid rgba(102, 126, 234, 0.25);
-    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(0, 245, 255, 0.25);
+    border-radius: 24px;
     padding: 3rem;
     margin: 2rem 0;
     text-align: center;
@@ -180,27 +195,27 @@ div, span, label, li {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(15px);
 }
 
 div[data-testid="stFileUploader"] {
-    border: 3px dashed rgba(102, 126, 234, 0.5);
+    border: 3px dashed rgba(0, 245, 255, 0.4);
     border-radius: 20px;
-    background: rgba(102, 126, 234, 0.06);
+    background: rgba(0, 245, 255, 0.04);
     padding: 3rem 2rem;
     min-height: 240px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(10px);
     width: 100%;
     max-width: 900px;
     margin: 0 auto;
 }
 
 div[data-testid="stFileUploader"]:hover {
-    border-color: rgba(245, 87, 108, 0.7);
-    background: rgba(245, 87, 108, 0.08);
+    border-color: rgba(192, 38, 211, 0.6);
+    background: rgba(192, 38, 211, 0.06);
     transform: translateY(-4px);
-    box-shadow: 0 15px 40px rgba(245, 87, 108, 0.25);
+    box-shadow: 0 15px 40px rgba(192, 38, 211, 0.25);
 }
 
 .stFileUploader label {
@@ -215,134 +230,167 @@ div[data-testid="stFileUploader"] small,
 div[data-testid="stFileUploader"] p,
 div[data-testid="stFileUploader"] div,
 div[data-testid="stFileUploader"] span {
-    color: #D1C4E9 !important;
+    color: #B4B4D4 !important;
 }
 
 .stFileUploader button {
     padding: 1rem 3rem !important;
     font-size: 1.1rem !important;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: linear-gradient(135deg, #00F5FF 0%, #C026D3 100%) !important;
     border: none !important;
     border-radius: 12px !important;
     color: white !important;
     font-weight: 700 !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4) !important;
+    box-shadow: 0 8px 20px rgba(0, 245, 255, 0.4) !important;
 }
 
 .stFileUploader button:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+    background: linear-gradient(135deg, #C026D3 0%, #00F5FF 100%) !important;
     transform: translateY(-3px) !important;
-    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6) !important;
+    box-shadow: 0 12px 30px rgba(192, 38, 211, 0.5) !important;
 }
 
-/* ==================== SELECT BOXES - PERFECT ALIGNMENT ==================== */
+/* ==================== SELECT BOXES - FIXED VISIBILITY & ALIGNMENT ==================== */
 div[data-testid="stSelectbox"] {
     margin: 0 !important;
+    padding: 0 !important;
 }
 
-div[data-testid="stSelectbox"] > label {
-    font-size: 1.05rem !important;
-    font-weight: 600 !important;
+/* Label - WHITE and BOLD with consistent spacing */
+div[data-testid="stSelectbox"] > label,
+div[data-testid="stSelectbox"] label {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
     color: #FFFFFF !important;
     margin-bottom: 0.75rem !important;
+    margin-top: 0 !important;
     display: block !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+    height: auto !important;
+    line-height: 1.4 !important;
 }
 
-/* Select box container with fixed height */
-div[data-testid="stSelectbox"] > div {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 2px solid rgba(102, 126, 234, 0.4) !important;
-    border-radius: 12px !important;
+/* Select box container - EXACT HEIGHT MATCH */
+div[data-testid="stSelectbox"] > div,
+div[data-testid="stSelectbox"] > div > div,
+div[data-testid="stSelectbox"] [data-baseweb="select"] {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 2px solid rgba(0, 245, 255, 0.4) !important;
+    border-radius: 14px !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    min-height: 50px !important;
-    height: 50px !important;
+    min-height: 56px !important;
+    height: 56px !important;
+    max-height: 56px !important;
     display: flex !important;
     align-items: center !important;
+    backdrop-filter: blur(10px) !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-/* Selected value - WHITE TEXT */
-div[data-testid="stSelectbox"] > div > div,
-div[data-testid="stSelectbox"] > div > div > div,
+/* Selected value - BRIGHT WHITE TEXT with shadow */
+div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+div[data-testid="stSelectbox"] div[data-baseweb="select"] > div > div,
 div[data-testid="stSelectbox"] [role="button"],
-div[data-testid="stSelectbox"] input {
+div[data-testid="stSelectbox"] [data-baseweb="select"] [role="button"] > div,
+div[data-testid="stSelectbox"] input,
+div[data-testid="stSelectbox"] span {
     color: #FFFFFF !important;
-    font-size: 1.05rem !important;
-    font-weight: 500 !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
     background: transparent !important;
     padding: 0.8rem 1.2rem !important;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+    line-height: 1.5 !important;
 }
 
-/* Dropdown arrow */
-div[data-testid="stSelectbox"] svg {
+/* Dropdown arrow - WHITE */
+div[data-testid="stSelectbox"] svg,
+div[data-testid="stSelectbox"] svg path {
     fill: #FFFFFF !important;
     stroke: #FFFFFF !important;
-    width: 20px !important;
-    height: 20px !important;
+    width: 22px !important;
+    height: 22px !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
 }
 
-div[data-testid="stSelectbox"] > div:hover {
-    border-color: rgba(245, 87, 108, 0.6) !important;
-    box-shadow: 0 4px 15px rgba(245, 87, 108, 0.25) !important;
-    background: rgba(255, 255, 255, 0.12) !important;
+div[data-testid="stSelectbox"] > div:hover,
+div[data-testid="stSelectbox"] > div > div:hover {
+    border-color: rgba(192, 38, 211, 0.6) !important;
+    box-shadow: 0 4px 20px rgba(192, 38, 211, 0.3) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
 }
 
 /* Dropdown menu */
-div[role="listbox"] {
-    background: #2A2440 !important;
-    border: 2px solid rgba(102, 126, 234, 0.5) !important;
-    border-radius: 12px !important;
+div[role="listbox"],
+ul[role="listbox"] {
+    background: #1a0d2e !important;
+    border: 2px solid rgba(0, 245, 255, 0.5) !important;
+    border-radius: 14px !important;
     margin-top: 0.5rem !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.7) !important;
+    backdrop-filter: blur(20px) !important;
 }
 
-div[role="option"] {
-    color: #E8EAF6 !important;
-    padding: 0.9rem 1.2rem !important;
+div[role="option"],
+li[role="option"] {
+    color: #FFFFFF !important;
+    font-size: 1.05rem !important;
+    font-weight: 500 !important;
+    padding: 1rem 1.5rem !important;
     background: transparent !important;
     transition: all 0.2s ease !important;
 }
 
-div[role="option"]:hover {
-    background: rgba(102, 126, 234, 0.4) !important;
+div[role="option"]:hover,
+li[role="option"]:hover {
+    background: rgba(0, 245, 255, 0.2) !important;
     color: #FFFFFF !important;
 }
 
-div[role="option"][aria-selected="true"] {
-    background: rgba(102, 126, 234, 0.3) !important;
+div[role="option"][aria-selected="true"],
+li[role="option"][aria-selected="true"] {
+    background: rgba(0, 245, 255, 0.3) !important;
     color: #FFFFFF !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
 }
 
 /* ==================== BUTTONS - PERFECT ALIGNMENT ==================== */
 .stButton {
     width: 100%;
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-end !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .stButton > button {
     padding: 0 2rem !important;
-    font-size: 1.05rem !important;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, #00F5FF 0%, #C026D3 100%) !important;
     border: none !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     color: white !important;
-    font-weight: 600 !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 6px 18px rgba(245, 87, 108, 0.4) !important;
+    box-shadow: 0 6px 20px rgba(0, 245, 255, 0.4) !important;
     width: 100% !important;
-    min-height: 50px !important;
-    height: 50px !important;
+    min-height: 56px !important;
+    height: 56px !important;
+    max-height: 56px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    margin: 0 !important;
+    margin-top: 2.15rem !important;
 }
 
 .stButton > button:hover {
-    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%) !important;
+    background: linear-gradient(135deg, #C026D3 0%, #00F5FF 100%) !important;
     transform: translateY(-3px) !important;
-    box-shadow: 0 10px 25px rgba(245, 87, 108, 0.6) !important;
+    box-shadow: 0 10px 30px rgba(192, 38, 211, 0.5) !important;
 }
 
 .stButton > button:active {
@@ -359,7 +407,7 @@ div[role="option"][aria-selected="true"] {
     background: rgba(255, 255, 255, 0.04);
     padding: 1rem;
     border-radius: 16px;
-    border: 1px solid rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(0, 245, 255, 0.2);
 }
 
 .stTabs [data-baseweb="tab"] {
@@ -368,23 +416,23 @@ div[role="option"][aria-selected="true"] {
     font-weight: 600 !important;
     background: rgba(255, 255, 255, 0.06) !important;
     border-radius: 12px !important;
-    color: #D1C4E9 !important;
+    color: #B4B4D4 !important;
     border: 2px solid transparent !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .stTabs [data-baseweb="tab"]:hover {
-    background: rgba(102, 126, 234, 0.15) !important;
-    border-color: rgba(102, 126, 234, 0.4) !important;
+    background: rgba(0, 245, 255, 0.1) !important;
+    border-color: rgba(0, 245, 255, 0.4) !important;
     color: #FFFFFF !important;
     transform: translateY(-2px);
 }
 
 .stTabs [data-baseweb="tab"][aria-selected="true"] {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: linear-gradient(135deg, #00F5FF 0%, #C026D3 100%) !important;
     color: white !important;
-    border-color: rgba(102, 126, 234, 0.6) !important;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+    border-color: rgba(0, 245, 255, 0.6) !important;
+    box-shadow: 0 8px 25px rgba(0, 245, 255, 0.4) !important;
     transform: translateY(-2px);
 }
 
@@ -394,8 +442,8 @@ div[role="option"][aria-selected="true"] {
 
 /* ==================== STATUS & ALERTS ==================== */
 div[data-testid="stStatus"] {
-    background: rgba(102, 126, 234, 0.12) !important;
-    border: 2px solid rgba(102, 126, 234, 0.3) !important;
+    background: rgba(0, 245, 255, 0.08) !important;
+    border: 2px solid rgba(0, 245, 255, 0.3) !important;
     border-radius: 16px !important;
     padding: 2rem !important;
     backdrop-filter: blur(10px) !important;
@@ -404,7 +452,7 @@ div[data-testid="stStatus"] {
 div[data-testid="stStatus"] p,
 div[data-testid="stStatus"] div,
 div[data-testid="stStatus"] span {
-    color: #E8EAF6 !important;
+    color: #FFFFFF !important;
 }
 
 .stAlert {
@@ -416,26 +464,44 @@ div[data-testid="stStatus"] span {
     backdrop-filter: blur(10px) !important;
 }
 
-.stAlert p, .stAlert div {
-    color: #E8EAF6 !important;
+.stAlert p, .stAlert div, .stAlert span {
+    color: #FFFFFF !important;
 }
 
 div[data-testid="stNotification"] {
-    background: rgba(102, 126, 234, 0.12) !important;
-    border: 1px solid rgba(102, 126, 234, 0.3) !important;
+    background: rgba(0, 245, 255, 0.08) !important;
+    border: 1px solid rgba(0, 245, 255, 0.3) !important;
     border-radius: 12px !important;
     backdrop-filter: blur(10px) !important;
 }
 
 div[data-testid="stNotification"] p,
-div[data-testid="stNotification"] div {
-    color: #E8EAF6 !important;
+div[data-testid="stNotification"] div,
+div[data-testid="stNotification"] span {
+    color: #FFFFFF !important;
+}
+
+/* Info boxes */
+div[data-testid="stInfo"],
+.stInfo {
+    background: rgba(0, 245, 255, 0.08) !important;
+    border: 1px solid rgba(0, 245, 255, 0.3) !important;
+    color: #FFFFFF !important;
+}
+
+div[data-testid="stInfo"] p,
+div[data-testid="stInfo"] div,
+div[data-testid="stInfo"] span,
+.stInfo p,
+.stInfo div,
+.stInfo span {
+    color: #FFFFFF !important;
 }
 
 /* ==================== CHAT INTERFACE ==================== */
 .stChatMessage {
     background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(102, 126, 234, 0.25) !important;
+    border: 1px solid rgba(0, 245, 255, 0.25) !important;
     border-radius: 16px !important;
     padding: 1.5rem !important;
     margin: 1rem 0 !important;
@@ -446,7 +512,7 @@ div[data-testid="stNotification"] div {
 .stChatMessage p,
 .stChatMessage div,
 .stChatMessage span {
-    color: #E8EAF6 !important;
+    color: #FFFFFF !important;
 }
 
 .stChatInput {
@@ -456,7 +522,7 @@ div[data-testid="stNotification"] div {
 
 .stChatInput > div {
     background: rgba(255, 255, 255, 0.08) !important;
-    border: 2px solid rgba(102, 126, 234, 0.4) !important;
+    border: 2px solid rgba(0, 245, 255, 0.4) !important;
     border-radius: 15px !important;
 }
 
@@ -468,25 +534,29 @@ div[data-testid="stNotification"] div {
 /* ==================== CODE BLOCKS ==================== */
 .stCodeBlock {
     background: rgba(0, 0, 0, 0.5) !important;
-    border: 1px solid rgba(102, 126, 234, 0.3) !important;
+    border: 1px solid rgba(0, 245, 255, 0.3) !important;
     border-radius: 12px !important;
     padding: 1.5rem !important;
     margin: 1.5rem 0 !important;
 }
 
 .stCodeBlock code {
-    color: #E8EAF6 !important;
+    color: #FFFFFF !important;
 }
 
 pre {
     background: rgba(0, 0, 0, 0.5) !important;
-    color: #E8EAF6 !important;
+    color: #FFFFFF !important;
+}
+
+code {
+    color: #FFFFFF !important;
 }
 
 /* ==================== EXPANDER ==================== */
 .stExpander {
     background: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(102, 126, 234, 0.25) !important;
+    border: 1px solid rgba(0, 245, 255, 0.25) !important;
     border-radius: 12px !important;
     margin: 1rem 0 !important;
     backdrop-filter: blur(5px) !important;
@@ -500,14 +570,22 @@ pre {
 .stExpander p,
 .stExpander div,
 .stExpander span {
-    color: #E8EAF6 !important;
+    color: #FFFFFF !important;
 }
 
 /* ==================== SPINNER ==================== */
 div[data-testid="stSpinner"] p,
 div[data-testid="stSpinner"] div,
 div[data-testid="stSpinner"] span {
-    color: #D1C4E9 !important;
+    color: #FFFFFF !important;
+}
+
+/* ==================== MARKDOWN TEXT ==================== */
+.stMarkdown p,
+.stMarkdown div,
+.stMarkdown span,
+.stMarkdown li {
+    color: #FFFFFF !important;
 }
 
 /* ==================== FOOTER ==================== */
@@ -516,7 +594,7 @@ div[data-testid="stSpinner"] span {
     padding: 2rem;
     text-align: center;
     background: rgba(255, 255, 255, 0.03);
-    border: 2px solid rgba(102, 126, 234, 0.25);
+    border: 2px solid rgba(0, 245, 255, 0.25);
     border-radius: 20px;
     backdrop-filter: blur(15px);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -524,23 +602,33 @@ div[data-testid="stSpinner"] span {
 
 .custom-footer p {
     font-size: 1rem;
-    color: #D1C4E9 !important;
+    color: #B4B4D4 !important;
     margin: 0;
 }
 
 /* ==================== HORIZONTAL RULE ==================== */
 hr {
     border: none;
-    border-top: 2px solid rgba(102, 126, 234, 0.25);
+    border-top: 2px solid rgba(0, 245, 255, 0.25);
     margin: 3rem 0;
 }
 
-/* ==================== MARKDOWN TEXT ==================== */
-.stMarkdown p,
-.stMarkdown div,
-.stMarkdown span,
-.stMarkdown li {
-    color: #E8EAF6 !important;
+/* ==================== SCROLLBAR ==================== */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #00F5FF 0%, #C026D3 100%);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #C026D3 0%, #00F5FF 100%);
 }
 
 /* ==================== RESPONSIVE DESIGN ==================== */
@@ -598,24 +686,6 @@ hr {
     animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==================== SCROLLBAR ==================== */
-::-webkit-scrollbar {
-    width: 12px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 6px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-}
-
 /* ==================== UTILITIES ==================== */
 .glass-effect {
     backdrop-filter: blur(10px);
@@ -651,7 +721,7 @@ def reset_app_state():
 
 st.markdown("""
 <div class="hero-header">
-    <h1>🏥 Healthcare Document AI Assistant</h1>
+    <h1>Healthcare Document AI Assistant</h1>
     <p>Demystifying medical documents with advanced AI technology</p>
 </div>
 """, unsafe_allow_html=True)
@@ -678,7 +748,7 @@ if not st.session_state.document_processed:
     
     st.markdown("</div>", unsafe_allow_html=True)
     
-    st.info("💡 **Tip:** Upload one or more documents. Our AI will analyze and combine their content for comprehensive insights.")
+    st.info("**Tip:** Upload one or more documents. Our AI will analyze and combine their content for comprehensive insights.")
 
     if uploaded_files:
         with st.status(f"🔄 Processing {len(uploaded_files)} document(s)...", expanded=True) as status:
@@ -731,7 +801,7 @@ else:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    col_spacer1, col_lang, col_button, col_spacer2 = st.columns([1, 2, 2, 1])
+    col_lang, col_button = st.columns(2)
     
     with col_lang:
         st.selectbox(
@@ -748,11 +818,10 @@ else:
 
     st.markdown("---")
 
-    # Main Tabs
     tab1, tab2, tab3 = st.tabs(["📄 Document View", "⚡ AI Actions", "💬 Ask Questions"])
 
     with tab1:
-        st.markdown("### Document Information")
+        st.markdown("### 📋 Document Information")
         col1, col2 = st.columns(2)
         with col1:
             st.info(f"**📋 Document Type:** {doc_type}")
@@ -763,7 +832,7 @@ else:
         st.code(doc_text[:Config.MAX_DOCUMENT_LENGTH // 2] + "\n\n... [Content continues]", language="text")
 
     with tab2:
-        st.markdown("### AI-Powered Document Analysis")
+        st.markdown("### 🔬 AI-Powered Document Analysis")
         st.write(f"**Current Document Type:** `{doc_type}`")
         
         col1, col2, col3 = st.columns(3)
