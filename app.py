@@ -1,5 +1,13 @@
 import streamlit as st
+import plotly.express as px
+import pandas as pd
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import json
+import re
 from typing import List, Any, Dict
+import io
+from datetime import datetime
 from functools import lru_cache
 import hashlib
 
@@ -10,6 +18,7 @@ from src.services.rag_service import RAGService
 from src.utils.document_parser import DocumentParser
 from src.utils.translator import GeminiTranslator
 
+# --- Service Initialization ---
 @st.cache_resource
 def get_doc_parser():
     return DocumentParser()
@@ -35,11 +44,12 @@ SUPPORTED_LANGUAGES = Config.SUPPORTED_LANGUAGES
 
 st.set_page_config(
     page_title="Healthcare Document AI Assistant",
-    page_icon="🏥",
+    page_icon="",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="auto" # <-- Set to 'auto' for your report page
 )
 
+# --- Friend's New CSS ---
 @st.cache_data
 def get_custom_css():
     return """<style>
@@ -98,9 +108,12 @@ body::before {
     display: none;
 }
 
+/* --- MODIFIED: Allows your sidebar report page to show --- */
+/*
 [data-testid="stSidebar"] {
     display: none;
 }
+*/
 
 /* ==================== CRITICAL TEXT VISIBILITY FIXES ==================== */
 /* Base text colors - CRITICAL */
@@ -188,7 +201,7 @@ strong {
     border: 2px solid rgba(0, 245, 255, 0.25);
     border-radius: 24px;
     padding: 3rem;
-    margin: 2rem 0;
+    margin: -50rem 0;
     text-align: center;
     min-height: 380px;
     display: flex;
@@ -384,8 +397,14 @@ li[role="option"][aria-selected="true"] {
     justify-content: center !important;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
     margin: 0 !important;
+}
+
+/* This is a special fix for the Start Over button to align with the select box */
+/* We target the button inside the column specifically */
+[data-testid="stVerticalBlock"] [data-testid="stHorizontalBlock"] .stButton {
     margin-top: 2.15rem !important;
 }
+
 
 .stButton > button:hover {
     background: linear-gradient(135deg, #C026D3 0%, #00F5FF 100%) !important;
@@ -696,6 +715,7 @@ hr {
 
 st.markdown(get_custom_css(), unsafe_allow_html=True)
 
+# --- Merged Session State Initialization ---
 def init_session_state():
     defaults = {
         'chat_history': [], 
@@ -705,7 +725,13 @@ def init_session_state():
         'doc_type': "Unknown", 
         'lang': "English",
         'uploaded_files_key': 0, 
-        'rag_service': None
+        'rag_service': None,
+        # --- Your Additions ---
+        'financial_rules': None,
+        'suggested_questions': [],
+        'show_summary_options': False,
+        'summary_result': None,
+        'action_history': []
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -713,12 +739,85 @@ def init_session_state():
 
 init_session_state()
 
+# --- FIXED Reset Function (clears cache) ---
 def reset_app_state():
+    """
+    Clears all cache data and session state to start fresh.
+    """
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    
     current_key = st.session_state.get('uploaded_files_key', 0)
     st.session_state.clear()
+    
     init_session_state()
     st.session_state.uploaded_files_key = current_key + 1
+# -------------------------------------------
 
+# --- Your Cached AI Action Functions ---
+@st.cache_data(show_spinner=False)
+def run_classification(document_text):
+    return ai_processor.classify_document(document_text)
+
+@st.cache_data(show_spinner=False)
+def run_question_generation(_document_text, _doc_type, _lang): # <-- Fixed to accept lang
+    questions_json = ai_processor.generate_suggested_questions(_document_text, _doc_type, _lang) # <-- Fixed to pass lang
+    try:
+        # Check if it's a list of strings
+        loaded_json = json.loads(questions_json)
+        if isinstance(loaded_json, list) and all(isinstance(item, str) for item in loaded_json):
+            return loaded_json
+        else:
+            # If it's not a list of strings (e.g., error dict), return empty list
+            return []
+    except:
+        return []
+
+@st.cache_data(show_spinner=False)
+def run_extract_entities(_document_text, _doc_type, _lang):
+    return ai_processor.extract_entities(_document_text, _doc_type, _lang)
+
+@st.cache_data(show_spinner=False)
+def run_risk_analysis(_document_text, _doc_type, _lang):
+    return ai_processor.perform_risk_analysis(_document_text, _doc_type, _lang)
+
+@st.cache_data(show_spinner=False)
+def run_explain_terms(_document_text, _doc_type, _lang):
+    return ai_processor.explain_complex_terms(_document_text, _doc_type, _lang)
+
+@st.cache_data(show_spinner=False)
+def run_compliance_checklist(_document_text, _doc_type, _lang):
+    return ai_processor.generate_compliance_checklist(_document_text, _doc_type, _lang)
+
+@st.cache_data(show_spinner=False)
+def run_simplify_document(_document_text, _doc_type, _lang):
+    return ai_processor.simplify_document(_document_text, _doc_type, _lang)
+
+@st.cache_data(show_spinner=False)
+def run_get_summary(_document_text, _doc_type, _lang, summary_type):
+    return ai_processor.get_summary(_document_text, _doc_type, _lang, summary_type)
+
+@st.cache_data(show_spinner=False)
+def run_cost_calculation(rules_str, user_costs_str, doc_type):
+    return ai_processor.calculate_cost_liability(rules_str, user_costs_str, doc_type)
+
+# --- Your Utility Functions ---
+def create_risk_meter(risk_score, risk_level):
+    fig = px.pie(values=[risk_score, 100 - risk_score], names=['Risk', ''], hole=0.6, color_discrete_sequence=["#FF4B4B", "rgba(0,0,0,0)"])
+    fig.update_traces(textinfo='none', marker=dict(line=dict(width=0)))
+    fig.update_layout(title=f"<b>Risk Level: {risk_level.upper()}</b>", showlegend=False, width=250, height=250, margin=dict(t=60, b=10, l=10, r=10), annotations=[dict(text=f'<b>{risk_score}%</b>', x=0.5, y=0.5, font_size=32, showarrow=False)], plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color="#FFFFFF"))
+    return fig
+
+def log_action(action_name, action_type, output):
+    st.session_state.action_history.insert(0, {
+        "action": action_name,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "type": action_type,
+        "output": output
+    })
+
+
+# --- Friend's Header ---
 st.markdown("""
 <div class="hero-header">
     <h1>Healthcare Document AI Assistant</h1>
@@ -726,7 +825,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# =================================================================================
+# Initial Upload View (Friend's logic + Your question generation)
+# =================================================================================
 if not st.session_state.document_processed:
+    
     st.markdown("<div class='upload-section'>", unsafe_allow_html=True)
     
     uploaded_files = st.file_uploader(
@@ -777,17 +880,24 @@ if not st.session_state.document_processed:
             if all_texts:
                 st.write("🔍 Analyzing document content...")
                 doc_text = doc_parser.preprocess_text("\n\n".join(all_texts))
-                classification = ai_processor.classify_document(doc_text)
+                classification = run_classification(doc_text)
                 doc_type = classification.get("document_type", "Other")
+                
                 st.write("🗂️ Creating searchable index for Q&A...")
-                rag_service = RAGService(doc_text)
+                rag_service = RAGService(doc_text) # <-- Friend's RAG init
+                
+                st.write("🔮 Generating intelligent question suggestions...")
+                # --- Your question generation, with lang fix ---
+                suggested_questions = run_question_generation(doc_text, doc_type, st.session_state.lang)
+                
                 st.session_state.update({
                     'document_text': doc_text, 
                     'doc_type': doc_type, 
                     'document_processed': True, 
-                    'rag_service': rag_service, 
+                    'rag_service': rag_service, # <-- Friend's RAG service
                     'chat_history': [], 
-                    'action_outputs': {}
+                    'action_outputs': {},
+                    'suggested_questions': suggested_questions # <-- Your questions
                 })
                 status.update(label="✅ Processing Complete!", state="complete", expanded=False)
                 st.rerun()
@@ -796,11 +906,16 @@ if not st.session_state.document_processed:
                 if not errors: 
                     st.error("No meaningful text could be extracted from the uploaded documents.")
 
+# =================================================================================
+# Main Interaction View (Merged)
+# =================================================================================
 else:
-    doc_text, doc_type = st.session_state.document_text, st.session_state.doc_type
+    doc_text = st.session_state.document_text
+    doc_type = st.session_state.doc_type
     
     st.markdown("<br>", unsafe_allow_html=True)
     
+    # --- Friend's Top Bar Layout (designed for new CSS) ---
     col_lang, col_button = st.columns(2)
     
     with col_lang:
@@ -812,65 +927,260 @@ else:
         )
         
     with col_button:
-        if st.button("🔄 Start Over", use_container_width=True): 
-            reset_app_state()
-            st.rerun()
+        if st.button("Start Over", use_container_width=True, on_click=reset_app_state): 
+            pass # reset_app_state is called on_click
 
     st.markdown("---")
 
-    tab1, tab2, tab3 = st.tabs(["📄 Document View", "⚡ AI Actions", "💬 Ask Questions"])
+    # --- Your Tabs ---
+    dash_tab, sim_tab, chat_tab, doc_tab = st.tabs(["📊 Dashboard", " Cost Simulator", "💬 AI Chat", "📄 Document View"])
 
-    with tab1:
-        st.markdown("### 📋 Document Information")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info(f"**📋 Document Type:** {doc_type}")
-        with col2:
-            st.info(f"**📏 Document Length:** {len(doc_text):,} characters")
-        
-        st.markdown("### 📖 Extracted Text Preview")
-        st.code(doc_text[:Config.MAX_DOCUMENT_LENGTH // 2] + "\n\n... [Content continues]", language="text")
+    # --- Your Dashboard Tab (Patched for bugs) ---
+    with dash_tab:
+        st.subheader("AI Actions Dashboard")
+        st.write("Click an action to get instant, graphical insights from your document.")
+        st.markdown("---")
 
-    with tab2:
-        st.markdown("### 🔬 AI-Powered Document Analysis")
-        st.write(f"**Current Document Type:** `{doc_type}`")
-        
         col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("Extract Key Information", use_container_width=True):
+                with st.spinner("Extracting and structuring key entities..."):
+                    st.session_state.show_summary_options = False
+                    result = run_extract_entities(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang)
+                    st.session_state.action_outputs = {"key_info": result}
+                    log_action("Extract Key Information", "key_info", result)
+            if st.button("Summarize Document", use_container_width=True):
+                st.session_state.show_summary_options = True
+                st.session_state.action_outputs = {}
+                st.session_state.summary_result = None
         
-        actions = {
-            "key_info": ("📊 Extract Key Info", ai_processor.extract_entities, "success"), 
-            "risk": ("⚠️ Risk Assessment", ai_processor.perform_risk_analysis, "warning"), 
-            "explain": ("📖 Explain Terms", ai_processor.explain_complex_terms, "info"), 
-            "checklist": ("✅ Compliance Check", ai_processor.generate_compliance_checklist, "success"), 
-            "summarize": ("📝 Summarize", ai_processor.summarize_document, "success"), 
-            "simplify": ("🔍 Simplify", ai_processor.simplify_document, "info")
-        }
+        with col2:
+            if st.button("Risk Assessment", use_container_width=True):
+                with st.spinner("Building risk dashboard..."):
+                    st.session_state.show_summary_options = False
+                    result = run_risk_analysis(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang)
+                    st.session_state.action_outputs = {"risk": result}
+                    log_action("Risk Assessment", "risk", result)
+            if st.button("Explain Complex Terms", use_container_width=True):
+                with st.spinner("Defining complex terms..."):
+                    st.session_state.show_summary_options = False
+                    result = run_explain_terms(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang)
+                    st.session_state.action_outputs = {"explain": result}
+                    log_action("Explain Complex Terms", "explain", result)
+        with col3:
+            if st.button("Generate Compliance Checklist", use_container_width=True):
+                with st.spinner("Building compliance scorecard..."):
+                    st.session_state.show_summary_options = False
+                    result = run_compliance_checklist(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang)
+                    st.session_state.action_outputs = {"checklist": result}
+                    log_action("Generate Compliance Checklist", "checklist", result)
+            if st.button("Simplify Document", use_container_width=True):
+                with st.spinner("Translating to plain language..."):
+                    st.session_state.show_summary_options = False
+                    result = run_simplify_document(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang)
+                    st.session_state.action_outputs = {"simplify": result}
+                    log_action("Simplify Document", "simplify", result)
+
+        if st.session_state.action_outputs or st.session_state.show_summary_options:
+            st.markdown("<hr style='margin-top: 2em; border-top: 2px solid rgba(0, 245, 255, 0.25);'>", unsafe_allow_html=True)
+            st.subheader("AI-Generated Insights")
+            
+            if st.session_state.show_summary_options:
+                with st.container(border=True):
+                    st.markdown("### 📜 Visual & Textual Summary")
+                    wc_col, opt_col = st.columns([1, 1.5])
+                    with wc_col:
+                        with st.spinner("Generating word cloud..."):
+                            try:
+                                wordcloud = WordCloud(width=400, height=300, background_color=None, mode="RGBA", colormap='viridis', max_words=75).generate(st.session_state.document_text)
+                                fig, ax = plt.subplots()
+                                fig.patch.set_alpha(0.0) # <-- Fix for transparency
+                                ax.patch.set_alpha(0.0)  # <-- Fix for transparency
+                                ax.imshow(wordcloud, interpolation='bilinear')
+                                ax.axis("off")
+                                st.pyplot(fig)
+                            except Exception as e:
+                                st.error(f"Could not generate word cloud: {e}")
+                    with opt_col:
+                        st.write("Choose the type of summary you need:")
+                        btn_cols_row1 = st.columns(3)
+                        if btn_cols_row1[0].button("Key Points"):
+                            with st.spinner("Generating key points..."):
+                                result = run_get_summary(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang, "key_points")
+                                st.session_state.summary_result = result
+                                log_action("📜 Summary: Key Points", "summary_key_points", result)
+                        if btn_cols_row1[1].button("Detailed Summary"):
+                            with st.spinner("Generating detailed summary..."):
+                                result = run_get_summary(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang, "detailed")
+                                st.session_state.summary_result = result
+                                log_action("📜 Summary: Detailed", "summary_detailed", result)
+                        if btn_cols_row1[2].button("Financial Focus"):
+                            with st.spinner("Generating financial summary..."):
+                                result = run_get_summary(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang, "financial")
+                                st.session_state.summary_result = result
+                                log_action("📜 Summary: Financial", "summary_financial", result)
+
+                        btn_cols_row2 = st.columns(3)
+                        if btn_cols_row2[0].button("Executive Summary"):
+                            with st.spinner("Generating executive summary..."):
+                                result = run_get_summary(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang, "executive")
+                                st.session_state.summary_result = result
+                                log_action("📜 Summary: Executive", "summary_executive", result)
+                        if btn_cols_row2[1].button("Concise Summary"):
+                            with st.spinner("Generating concise summary..."):
+                                result = run_get_summary(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang, "concise")
+                                st.session_state.summary_result = result
+                                log_action("📜 Summary: Concise", "summary_concise", result)
+                    
+                    if st.session_state.summary_result:
+                        st.markdown("---")
+                        st.markdown(st.session_state.summary_result)
+            
+            if "risk" in st.session_state.action_outputs:
+                with st.container(border=True):
+                    st.markdown("### ❗ Risk Assessment Dashboard")
+                    try:
+                        risk_data = json.loads(st.session_state.action_outputs["risk"])
+                        if "error" in risk_data: raise ValueError(risk_data["error"])
+                        details_text = risk_data.get("details", "No details provided.")
+                        dash_cols = st.columns([1.5, 1, 1, 1])
+                        with dash_cols[0]:
+                            st.plotly_chart(create_risk_meter(risk_data.get("risk_score", 0), risk_data.get("risk_level", "N/A")), use_container_width=True)
+                        with dash_cols[1]:
+                            st.metric(label="Risk Score", value=f"{risk_data.get('risk_score', 0)}/100")
+                        with dash_cols[2]:
+                            st.metric(label="High-Risk Clauses", value=risk_data.get("high_risk_clauses", 0))
+                        with dash_cols[3]:
+                            st.metric(label="Medium-Risk Clauses", value=risk_data.get("medium_risk_clauses", 0))
+                        with st.expander("See Detailed Risk Analysis and Mitigation Steps"):
+                            st.markdown(details_text)
+                    except Exception as e:
+                        st.error(f"Could not generate risk dashboard. The AI response may not be in the correct format.", icon="⚠️")
+                        with st.expander("Click to see the raw AI output for debugging"):
+                            st.text(st.session_state.action_outputs["risk"])
+
+            if "key_info" in st.session_state.action_outputs:
+                with st.container(border=True):
+                    st.markdown("### 🔑 Key Information Hub")
+                    try:
+                        info_data = json.loads(st.session_state.action_outputs["key_info"])
+                        if "error" in info_data: raise ValueError(info_data["error"])
+                        valid_tabs = {k: v for k, v in info_data.items() if v}
+                        if not valid_tabs:
+                            st.info("No key information could be extracted for these categories.")
+                        else:
+                            tab_names = [key.replace('_', ' ').title() for key in valid_tabs.keys()]
+                            tabs = st.tabs(tab_names)
+                            for tab, (key, value) in zip(tabs, valid_tabs.items()):
+                                with tab:
+                                    if isinstance(value, dict) and value:
+                                        for sub_key, sub_value in value.items():
+                                            st.markdown(f"**{sub_key.replace('_', ' ').title()}:**")
+                                            st.code(sub_value, language=None)
+                                    elif isinstance(value, list) and value:
+                                        st.markdown("\n".join(f"- {item}" for item in value))
+                    except Exception as e:
+                        st.error(f"Could not parse key info. The AI response may not be in the correct format.", icon="⚠️")
+                        with st.expander("Click to see the raw AI output for debugging"):
+                            st.text(st.session_state.action_outputs["key_info"])
+
+            if "checklist" in st.session_state.action_outputs:
+                with st.container(border=True):
+                    st.markdown("### ✅ Compliance Scorecard")
+                    try:
+                        raw_output = st.session_state.action_outputs["checklist"]
+                        checklist_data = json.loads(raw_output)
+                        
+                        if isinstance(checklist_data, dict) and "error" in checklist_data: 
+                            raise ValueError(checklist_data["error"])
+                        
+                        if isinstance(checklist_data, dict): 
+                            checklist_data = [checklist_data]
+
+                        df = pd.DataFrame(checklist_data)
+                        if 'status' not in df.columns: 
+                            raise ValueError("Required 'status' column not found in the data.")
+                        
+                        status_counts = df['status'].value_counts()
+                        chart_col, table_col = st.columns([1, 2])
+                        with chart_col:
+                            fig = px.pie(status_counts, values=status_counts.values, names=status_counts.index, title="Compliance Status", hole=0.5, color_discrete_map={'Pass':'green', 'Fail':'red', 'Review':'orange'})
+                            fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#FFFFFF') # <-- Text color fix
+                            st.plotly_chart(fig, use_container_width=True)
+                        with table_col:
+                            st.dataframe(df, use_container_width=True, hide_index=True)
+                    except Exception as e:
+                        st.error(f"Could not generate compliance scorecard: {e}", icon="⚠️")
+                        with st.expander("Click to see the raw AI output for debugging"):
+                            st.text(st.session_state.action_outputs["checklist"])
+
+            text_based_outputs = {"explain": "💡 Complex Terms Explained", "simplify": "🕊️ Simplified Document"}
+            for key, title in text_based_outputs.items():
+                if key in st.session_state.action_outputs:
+                    with st.container(border=True):
+                        st.markdown(f"### {title}")
+                        st.markdown(st.session_state.action_outputs[key], unsafe_allow_html=True) # Allow HTML for better formatting
+
+    # --- Your Cost Simulator Tab (Patched for bugs) ---
+    with sim_tab:
+        st.subheader("₹ Cost Simulator")
+        st.info("Estimate your out-of-pocket expenses based on your policy's rules.")
         
-        clicked_action = None
-        for i, (key, (label, _, _)) in enumerate(actions.items()):
-            col = [col1, col2, col3][i % 3]
-            if col.button(label, use_container_width=True, key=f"btn_{key}"):
-                clicked_action = key
+        if not st.session_state.get('financial_rules'):
+            if st.button("Analyze Financial Rules for Simulation"):
+                with st.spinner("Extracting policy rules (deductible, co-pay, etc.)..."):
+                    try:
+                        rules_json = ai_processor.extract_financial_rules(st.session_state.document_text, st.session_state.doc_type)
+                        st.session_state.financial_rules = json.loads(rules_json)
+                    except Exception as e:
+                        st.error(f"Could not extract financial rules: {e}", icon="⚠️")
+                        st.session_state.financial_rules = {"error": "Failed to parse AI response."}
+                    st.rerun()
+        else:
+            rules = st.session_state.financial_rules
+            if not rules or "error" in rules:
+                st.error("Could not extract financial rules automatically. This feature may not be applicable to your document type or the AI failed to understand it.", icon="⚠️")
+            else:
+                st.success("Financial rules extracted successfully!")
+                st.json(rules)
+            
+            with st.form("cost_calculator"):
+                st.write("Enter your estimated medical costs (in ₹):")
+                total_bill = st.number_input("Total Hospital Bill", min_value=0.0, step=100.0, format="%.2f")
+                pharmacy_costs = st.number_input("Pharmacy & Medication Costs", min_value=0.0, step=10.0, format="%.2f")
+                
+                submitted = st.form_submit_button("Calculate My Cost")
+                if submitted:
+                    with st.spinner("Calculating liability based on your policy..."):
+                        liability_json = None
+                        try:
+                            user_costs_str = json.dumps({"total_bill": total_bill, "pharmacy_costs": pharmacy_costs})
+                            rules_str = json.dumps(rules if rules else {})
+                            
+                            liability_json = run_cost_calculation(rules_str, user_costs_str, st.session_state.doc_type)
+                            liability_data = json.loads(liability_json)
+                            
+                            st.markdown("---")
+                            st.subheader("Calculation Results")
+                            res_col1, res_col2, res_col3 = st.columns(3)
+                            
+                            res_col1.metric("Total Bill", f"₹{liability_data.get('total_bill', 0):,.2f}")
+                            res_col2.metric("Insurance Pays", f"₹{liability_data.get('insurance_pays', 0):,.2f}", delta_color="off")
+                            res_col3.metric("You Pay (Out-of-Pocket)", f"₹{liability_data.get('user_pays', 0):,.2f}", delta_color="inverse")
+                            
+                            with st.expander("See Explanation"):
+                                st.info(f"{liability_data.get('explanation', 'No explanation provided.')}")
+                                
+                            log_action("💲 Cost Simulation", "cost_sim", liability_data)
 
-        if clicked_action:
-            label, method, msg_type = actions[clicked_action]
-            with st.spinner(f"🔄 Running {label}..."):
-                result = method(doc_text, doc_type, st.session_state.lang)
-                st.session_state.action_outputs[clicked_action] = {
-                    "type": msg_type, 
-                    "header": f"{label} Results", 
-                    "content": result
-                }
-            st.rerun()
-
-        if st.session_state.action_outputs:
-            st.markdown("---")
-            st.markdown("### 📊 Analysis Results")
-            for output in st.session_state.action_outputs.values():
-                getattr(st, output["type"])(f"**{output['header']}**")
-                st.markdown(output["content"])
-
-    with tab3:
+                        except Exception as e:
+                            st.error(f"Could not calculate costs: {e}", icon="⚠️")
+                            if liability_json:
+                                with st.expander("Click to see the raw AI output for debugging"):
+                                    st.text(liability_json)
+    
+    # --- Friend's Chat Tab (Patched for logging) ---
+    with chat_tab:
         st.markdown("### 💬 Interactive Q&A Assistant")
         
         for entry in st.session_state.chat_history:
@@ -881,18 +1191,15 @@ else:
                         st.info(entry["context"])
         
         if not st.session_state.chat_history:
-            if 'suggested_questions' not in st.session_state:
-                with st.spinner("🔮 Generating intelligent question suggestions..."):
-                    st.session_state.suggested_questions = ai_processor.generate_suggested_questions(
-                        doc_text, doc_type, st.session_state.lang
-                    )
-            
             if st.session_state.suggested_questions and isinstance(st.session_state.suggested_questions, list):
-                st.markdown("#### 💡 Suggested Questions")
-                for i, question in enumerate(st.session_state.suggested_questions[:4]):
-                    if st.button(f"💬 {question}", key=f"suggestion_{i}", use_container_width=True):
-                        st.session_state.user_input_from_button = question
-                        st.rerun()
+                st.markdown("####  Suggested Questions")
+                num_questions = len(st.session_state.suggested_questions)
+                if num_questions > 0:
+                    q_cols = st.columns(min(num_questions, 4)) # 4 questions
+                    for i, question in enumerate(st.session_state.suggested_questions[:4]):
+                        if q_cols[i % len(q_cols)].button(f" {question}", key=f"suggestion_{i}", use_container_width=True):
+                            st.session_state.user_input_from_button = question
+                            st.rerun()
 
         prompt = st.chat_input("💭 Type your question here...")
         if "user_input_from_button" in st.session_state:
@@ -902,7 +1209,7 @@ else:
         if prompt:
             st.session_state.chat_history.append({"role": "user", "content": prompt})
             with st.spinner("🔍 Searching document for answer..."):
-                chat_service.set_document_context(doc_text, doc_type)
+                chat_service.set_document_context(st.session_state.document_text, st.session_state.doc_type)
                 response_dict = chat_service.ask_question(prompt, language=st.session_state.lang)
                 ai_response = {
                     "role": "ai",
@@ -910,6 +1217,8 @@ else:
                     "context": response_dict.get("context")
                 }
                 st.session_state.chat_history.append(ai_response)
+                # --- Your log_action added ---
+                log_action("💬 AI Chat", "chat", {"question": prompt, "answer": ai_response["content"]})
             st.rerun()
             
         if len(st.session_state.chat_history) > 0:
@@ -919,12 +1228,27 @@ else:
                 if st.button("🗑️ Clear Chat History", use_container_width=True):
                     st.session_state.chat_history = []
                     if 'suggested_questions' in st.session_state:
-                        del st.session_state['suggested_questions']
+                        # Rerun question generation
+                        with st.spinner("🔮 Generating new suggestions..."):
+                            st.session_state.suggested_questions = run_question_generation(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang)
                     st.rerun()
 
-# Footer
+    # --- Friend's Document View Tab ---
+    with doc_tab:
+        st.markdown("### 📋 Document Information")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**📋 Document Type:** {st.session_state.doc_type}")
+        with col2:
+            st.info(f"**📏 Document Length:** {len(st.session_state.document_text):,} characters")
+        
+        st.markdown("### 📖 Extracted Text Preview")
+        st.code(st.session_state.document_text[:Config.MAX_DOCUMENT_LENGTH // 2] + "\n\n... [Content continues]", language="text")
+
+
+# --- Friend's Footer ---
 st.markdown("""
 <div class="custom-footer">
-    <p>🏥 <strong>Healthcare Document AI Assistant</strong> | Powered by Advanced Generative AI | Secure & Confidential</p>
+    <p><strong>Healthcare Document AI Assistant</strong> | Powered by Advanced Generative AI | Secure & Confidential</p>
 </div>
 """, unsafe_allow_html=True)

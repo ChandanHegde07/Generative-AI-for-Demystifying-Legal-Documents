@@ -2,6 +2,7 @@ import google.generativeai as genai
 from typing import List, Dict, Any, Optional
 import streamlit as st  
 import re
+import json # <-- Added import
 
 from src.config import Config 
 from src.utils.pii_anonymizer import PIIAnonymizer
@@ -23,22 +24,31 @@ class ChatService:
         """Sets the context for the current chat session."""
         self.document_context = document_text
         self.document_type = doc_type
-        self.conversation_history = []
+        self.conversation_history = [] # Reset history for the new document
 
-    def _add_to_history(self, question: str, answer: str):
-        """Adds a question and answer pair to the conversation history."""
-        self.conversation_history.extend([{"role": "user", "content": question}, {"role": "ai", "content": answer}])
+    def _add_to_history(self, question: str, answer_dict: Dict[str, Any]):
+        """
+        Adds a question and answer pair to the conversation history.
+        FIX: This now correctly handles the answer dictionary.
+        """
+        answer_text = answer_dict.get("answer", "No answer found.")
+        self.conversation_history.extend([
+            {"role": "user", "content": question}, 
+            {"role": "ai", "content": answer_text} # Only add the text part to history
+        ])
         if len(self.conversation_history) > self.max_history_length:
             self.conversation_history = self.conversation_history[-self.max_history_length:]
 
-    def ask_question(self, question: str, language: str = "English") -> str:
+    def ask_question(self, question: str, language: str = "English") -> Dict[str, Any]:
         """
         Answers a user's question using the RAG pipeline.
+        FIX: This function now *always* returns a dictionary {"answer": "...", "context": "..."}
         """
         if not self.document_context:
             error_message = "Error: Document context not set. Please upload a document first."
-            self._add_to_history(question, error_message)
-            return error_message
+            error_dict = {"answer": error_message, "context": None}
+            self._add_to_history(question, error_dict)
+            return error_dict
 
         try:
             rag_service = st.session_state.get("rag_service")
@@ -48,31 +58,38 @@ class ChatService:
             print(f"DEBUG: Retrieving context for question: '{question}'")
             context = rag_service.retrieve_relevant_chunks(question)
 
-            answer = self.ai_processor.answer_question_with_rag(
+            # This calls the 'answer_question_with_rag' function we kept in ai_processor
+            answer_dict = self.ai_processor.answer_question_with_rag(
                 question=question,
                 context=context,
                 language=language
             )
 
-            self._add_to_history(question, answer)
-            return answer
+            self._add_to_history(question, answer_dict)
+            return answer_dict
 
         except Exception as e:
             error_message = f"Error processing your question: {str(e)}"
+            error_dict = {"answer": error_message, "context": None}
             print(f"ERROR: {error_message}")
-            self._add_to_history(question, error_message)
-            return error_message
+            self._add_to_history(question, error_dict)
+            return error_dict
 
     def get_suggested_questions(self, language: str = "English") -> List[str]:
         """Generates suggested questions based on the full document context."""
         try:
-            return self.ai_processor.generate_suggested_questions(self.document_context, self.document_type, language)
+            # This calls the function we merged into ai_processor
+            questions_json_str = self.ai_processor.generate_suggested_questions(self.document_context, self.document_type, language)
+            questions_list = json.loads(questions_json_str)
+            return questions_list if isinstance(questions_list, list) else []
         except Exception as e:
             print(f"ERROR generating suggested questions: {e}")
             return [
-                "What are the main obligations of each party?", "What are the payment terms and deadlines?",
-                "How can this agreement be terminated?", "What happens if someone breaches the contract?"
+                "What are the main obligations of each party?",
+                "What are the payment terms and deadlines?",
+                "How can this agreement be terminated?"
             ]
     
     def explain_document_section(self, section_text: str, language: str = "English") -> str:
-        return self.ai_processor.explain_document_section(section_text, self.document_type, language)
+        # This function isn't used in our merged app, but we keep it
+        return self.ai_processor.explain_complex_terms(section_text, self.document_type, language)
