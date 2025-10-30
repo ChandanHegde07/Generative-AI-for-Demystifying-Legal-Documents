@@ -23,3 +23,8 @@ numpy
 pandas
 pydantic
 python-dotenv
+
+plotly
+pandas
+matplotlib
+wordcloud
