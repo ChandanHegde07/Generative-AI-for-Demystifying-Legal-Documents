@@ -46,10 +46,9 @@ st.set_page_config(
     page_title="Healthcare Document AI Assistant",
     page_icon="",
     layout="wide",
-    initial_sidebar_state="auto" # <-- Set to 'auto' for your report page
+    initial_sidebar_state="auto" 
 )
 
-# --- Friend's New CSS ---
 @st.cache_data
 def get_custom_css():
     return """<style>
@@ -715,7 +714,6 @@ hr {
 
 st.markdown(get_custom_css(), unsafe_allow_html=True)
 
-# --- Merged Session State Initialization ---
 def init_session_state():
     defaults = {
         'chat_history': [], 
@@ -726,7 +724,6 @@ def init_session_state():
         'lang': "English",
         'uploaded_files_key': 0, 
         'rag_service': None,
-        # --- Your Additions ---
         'financial_rules': None,
         'suggested_questions': [],
         'show_summary_options': False,
@@ -739,7 +736,6 @@ def init_session_state():
 
 init_session_state()
 
-# --- FIXED Reset Function (clears cache) ---
 def reset_app_state():
     """
     Clears all cache data and session state to start fresh.
@@ -752,23 +748,19 @@ def reset_app_state():
     
     init_session_state()
     st.session_state.uploaded_files_key = current_key + 1
-# -------------------------------------------
 
-# --- Your Cached AI Action Functions ---
 @st.cache_data(show_spinner=False)
 def run_classification(document_text):
     return ai_processor.classify_document(document_text)
 
 @st.cache_data(show_spinner=False)
-def run_question_generation(_document_text, _doc_type, _lang): # <-- Fixed to accept lang
-    questions_json = ai_processor.generate_suggested_questions(_document_text, _doc_type, _lang) # <-- Fixed to pass lang
+def run_question_generation(_document_text, _doc_type, _lang): 
+    questions_json = ai_processor.generate_suggested_questions(_document_text, _doc_type, _lang) 
     try:
-        # Check if it's a list of strings
         loaded_json = json.loads(questions_json)
         if isinstance(loaded_json, list) and all(isinstance(item, str) for item in loaded_json):
             return loaded_json
         else:
-            # If it's not a list of strings (e.g., error dict), return empty list
             return []
     except:
         return []
@@ -801,7 +793,6 @@ def run_get_summary(_document_text, _doc_type, _lang, summary_type):
 def run_cost_calculation(rules_str, user_costs_str, doc_type):
     return ai_processor.calculate_cost_liability(rules_str, user_costs_str, doc_type)
 
-# --- Your Utility Functions ---
 def create_risk_meter(risk_score, risk_level):
     fig = px.pie(values=[risk_score, 100 - risk_score], names=['Risk', ''], hole=0.6, color_discrete_sequence=["#FF4B4B", "rgba(0,0,0,0)"])
     fig.update_traces(textinfo='none', marker=dict(line=dict(width=0)))
@@ -817,7 +808,6 @@ def log_action(action_name, action_type, output):
     })
 
 
-# --- Friend's Header ---
 st.markdown("""
 <div class="hero-header">
     <h1>Healthcare Document AI Assistant</h1>
@@ -825,9 +815,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# =================================================================================
-# Initial Upload View (Friend's logic + Your question generation)
-# =================================================================================
 if not st.session_state.document_processed:
     
     st.markdown("<div class='upload-section'>", unsafe_allow_html=True)
@@ -854,68 +841,63 @@ if not st.session_state.document_processed:
     st.info("**Tip:** Upload one or more documents. Our AI will analyze and combine their content for comprehensive insights.")
 
     if uploaded_files:
-        with st.status(f"🔄 Processing {len(uploaded_files)} document(s)...", expanded=True) as status:
+        with st.status(f"Processing {len(uploaded_files)} document(s)...", expanded=True) as status:
             all_texts, errors = [], []
             for up_file in uploaded_files:
-                st.write(f"📄 Extracting text from `{up_file.name}`...")
+                st.write(f"Extracting text from `{up_file.name}`...")
                 try:
                     is_valid, msg = Config.validate_file(up_file)
                     if not is_valid:
-                        errors.append(f"❌ '{up_file.name}' is invalid: {msg}")
+                        errors.append(f"'{up_file.name}' is invalid: {msg}")
                         continue
                     up_file.seek(0)
                     text = doc_parser.extract_text_from_file(up_file)
                     is_valid, msg = doc_parser.validate_extracted_text(text)
                     if not is_valid:
-                        errors.append(f"❌ Could not process '{up_file.name}': {msg}")
+                        errors.append(f"Could not process '{up_file.name}': {msg}")
                     else:
                         all_texts.append(text)
-                        st.write(f"✅ Successfully processed `{up_file.name}`")
+                        st.write(f"Successfully processed `{up_file.name}`")
                 except Exception as e:
-                    errors.append(f"❌ Error with `{up_file.name}`: {e}")
+                    errors.append(f"Error with `{up_file.name}`: {e}")
             
             for error in errors: 
                 st.error(error)
             
             if all_texts:
-                st.write("🔍 Analyzing document content...")
+                st.write("Analyzing document content...")
                 doc_text = doc_parser.preprocess_text("\n\n".join(all_texts))
                 classification = run_classification(doc_text)
                 doc_type = classification.get("document_type", "Other")
                 
-                st.write("🗂️ Creating searchable index for Q&A...")
-                rag_service = RAGService(doc_text) # <-- Friend's RAG init
+                st.write("Creating searchable index for Q&A...")
+                rag_service = RAGService(doc_text) 
                 
-                st.write("🔮 Generating intelligent question suggestions...")
-                # --- Your question generation, with lang fix ---
+                st.write("Generating intelligent question suggestions...")
                 suggested_questions = run_question_generation(doc_text, doc_type, st.session_state.lang)
                 
                 st.session_state.update({
                     'document_text': doc_text, 
                     'doc_type': doc_type, 
                     'document_processed': True, 
-                    'rag_service': rag_service, # <-- Friend's RAG service
+                    'rag_service': rag_service, 
                     'chat_history': [], 
                     'action_outputs': {},
-                    'suggested_questions': suggested_questions # <-- Your questions
+                    'suggested_questions': suggested_questions 
                 })
-                status.update(label="✅ Processing Complete!", state="complete", expanded=False)
+                status.update(label="Processing Complete!", state="complete", expanded=False)
                 st.rerun()
             else:
-                status.update(label="❌ Processing Failed", state="error", expanded=True)
+                status.update(label="Processing Failed", state="error", expanded=True)
                 if not errors: 
                     st.error("No meaningful text could be extracted from the uploaded documents.")
 
-# =================================================================================
-# Main Interaction View (Merged)
-# =================================================================================
 else:
     doc_text = st.session_state.document_text
     doc_type = st.session_state.doc_type
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # --- Friend's Top Bar Layout (designed for new CSS) ---
     col_lang, col_button = st.columns(2)
     
     with col_lang:
@@ -928,14 +910,12 @@ else:
         
     with col_button:
         if st.button("Start Over", use_container_width=True, on_click=reset_app_state): 
-            pass # reset_app_state is called on_click
+            pass 
 
     st.markdown("---")
 
-    # --- Your Tabs ---
-    dash_tab, sim_tab, chat_tab, doc_tab = st.tabs(["📊 Dashboard", " Cost Simulator", "💬 AI Chat", "📄 Document View"])
+    dash_tab, sim_tab, chat_tab, doc_tab = st.tabs(["Dashboard", " Cost Simulator", "AI Chat", "Document View"])
 
-    # --- Your Dashboard Tab (Patched for bugs) ---
     with dash_tab:
         st.subheader("AI Actions Dashboard")
         st.write("Click an action to get instant, graphical insights from your document.")
@@ -994,8 +974,8 @@ else:
                             try:
                                 wordcloud = WordCloud(width=400, height=300, background_color=None, mode="RGBA", colormap='viridis', max_words=75).generate(st.session_state.document_text)
                                 fig, ax = plt.subplots()
-                                fig.patch.set_alpha(0.0) # <-- Fix for transparency
-                                ax.patch.set_alpha(0.0)  # <-- Fix for transparency
+                                fig.patch.set_alpha(0.0)
+                                ax.patch.set_alpha(0.0)  
                                 ax.imshow(wordcloud, interpolation='bilinear')
                                 ax.axis("off")
                                 st.pyplot(fig)
@@ -1038,7 +1018,7 @@ else:
             
             if "risk" in st.session_state.action_outputs:
                 with st.container(border=True):
-                    st.markdown("### ❗ Risk Assessment Dashboard")
+                    st.markdown("### Risk Assessment Dashboard")
                     try:
                         risk_data = json.loads(st.session_state.action_outputs["risk"])
                         if "error" in risk_data: raise ValueError(risk_data["error"])
@@ -1061,7 +1041,7 @@ else:
 
             if "key_info" in st.session_state.action_outputs:
                 with st.container(border=True):
-                    st.markdown("### 🔑 Key Information Hub")
+                    st.markdown("### Key Information Hub")
                     try:
                         info_data = json.loads(st.session_state.action_outputs["key_info"])
                         if "error" in info_data: raise ValueError(info_data["error"])
@@ -1086,7 +1066,7 @@ else:
 
             if "checklist" in st.session_state.action_outputs:
                 with st.container(border=True):
-                    st.markdown("### ✅ Compliance Scorecard")
+                    st.markdown("### Compliance Scorecard")
                     try:
                         raw_output = st.session_state.action_outputs["checklist"]
                         checklist_data = json.loads(raw_output)
@@ -1114,14 +1094,13 @@ else:
                         with st.expander("Click to see the raw AI output for debugging"):
                             st.text(st.session_state.action_outputs["checklist"])
 
-            text_based_outputs = {"explain": "💡 Complex Terms Explained", "simplify": "🕊️ Simplified Document"}
+            text_based_outputs = {"explain": "Complex Terms Explained", "simplify": "Simplified Document"}
             for key, title in text_based_outputs.items():
                 if key in st.session_state.action_outputs:
                     with st.container(border=True):
                         st.markdown(f"### {title}")
-                        st.markdown(st.session_state.action_outputs[key], unsafe_allow_html=True) # Allow HTML for better formatting
+                        st.markdown(st.session_state.action_outputs[key], unsafe_allow_html=True) 
 
-    # --- Your Cost Simulator Tab (Patched for bugs) ---
     with sim_tab:
         st.subheader("₹ Cost Simulator")
         st.info("Estimate your out-of-pocket expenses based on your policy's rules.")
@@ -1171,7 +1150,7 @@ else:
                             with st.expander("See Explanation"):
                                 st.info(f"{liability_data.get('explanation', 'No explanation provided.')}")
                                 
-                            log_action("💲 Cost Simulation", "cost_sim", liability_data)
+                            log_action("Cost Simulation", "cost_sim", liability_data)
 
                         except Exception as e:
                             st.error(f"Could not calculate costs: {e}", icon="⚠️")
@@ -1179,9 +1158,8 @@ else:
                                 with st.expander("Click to see the raw AI output for debugging"):
                                     st.text(liability_json)
     
-    # --- Friend's Chat Tab (Patched for logging) ---
     with chat_tab:
-        st.markdown("### 💬 Interactive Q&A Assistant")
+        st.markdown("### Interactive Q&A Assistant")
         
         for entry in st.session_state.chat_history:
             with st.chat_message(entry["role"], avatar="👤" if entry["role"] == "user" else "🤖"):
@@ -1195,20 +1173,20 @@ else:
                 st.markdown("####  Suggested Questions")
                 num_questions = len(st.session_state.suggested_questions)
                 if num_questions > 0:
-                    q_cols = st.columns(min(num_questions, 4)) # 4 questions
+                    q_cols = st.columns(min(num_questions, 4)) 
                     for i, question in enumerate(st.session_state.suggested_questions[:4]):
                         if q_cols[i % len(q_cols)].button(f" {question}", key=f"suggestion_{i}", use_container_width=True):
                             st.session_state.user_input_from_button = question
                             st.rerun()
 
-        prompt = st.chat_input("💭 Type your question here...")
+        prompt = st.chat_input("💭Type your question here...")
         if "user_input_from_button" in st.session_state:
             prompt = st.session_state.user_input_from_button
             del st.session_state["user_input_from_button"]
 
         if prompt:
             st.session_state.chat_history.append({"role": "user", "content": prompt})
-            with st.spinner("🔍 Searching document for answer..."):
+            with st.spinner("Searching document for answer..."):
                 chat_service.set_document_context(st.session_state.document_text, st.session_state.doc_type)
                 response_dict = chat_service.ask_question(prompt, language=st.session_state.lang)
                 ai_response = {
@@ -1217,7 +1195,6 @@ else:
                     "context": response_dict.get("context")
                 }
                 st.session_state.chat_history.append(ai_response)
-                # --- Your log_action added ---
                 log_action("💬 AI Chat", "chat", {"question": prompt, "answer": ai_response["content"]})
             st.rerun()
             
@@ -1225,28 +1202,25 @@ else:
             st.markdown("---")
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
-                if st.button("🗑️ Clear Chat History", use_container_width=True):
+                if st.button("Clear Chat History", use_container_width=True):
                     st.session_state.chat_history = []
                     if 'suggested_questions' in st.session_state:
-                        # Rerun question generation
-                        with st.spinner("🔮 Generating new suggestions..."):
+                        with st.spinner("Generating new suggestions..."):
                             st.session_state.suggested_questions = run_question_generation(st.session_state.document_text, st.session_state.doc_type, st.session_state.lang)
                     st.rerun()
 
-    # --- Friend's Document View Tab ---
     with doc_tab:
-        st.markdown("### 📋 Document Information")
+        st.markdown("### Document Information")
         col1, col2 = st.columns(2)
         with col1:
-            st.info(f"**📋 Document Type:** {st.session_state.doc_type}")
+            st.info(f"**Document Type:** {st.session_state.doc_type}")
         with col2:
-            st.info(f"**📏 Document Length:** {len(st.session_state.document_text):,} characters")
+            st.info(f"**Document Length:** {len(st.session_state.document_text):,} characters")
         
-        st.markdown("### 📖 Extracted Text Preview")
+        st.markdown("### Extracted Text Preview")
         st.code(st.session_state.document_text[:Config.MAX_DOCUMENT_LENGTH // 2] + "\n\n... [Content continues]", language="text")
 
 
-# --- Friend's Footer ---
 st.markdown("""
 <div class="custom-footer">
     <p><strong>Healthcare Document AI Assistant</strong> | Powered by Advanced Generative AI | Secure & Confidential</p>
