@@ -163,3 +163,4 @@ Multi-layer OCR system for maximum text extraction accuracy:
 ## Authors
 - **Mukundh R Reddy**
 - **Chandan Hegde**
+- **Arun Arya**
