@@ -164,3 +164,8 @@ Multi-layer OCR system for maximum text extraction accuracy:
 - **Mukundh R Reddy** – Ideator & Core Backend
 - **Chandan Hegde** - Frontend & RAG Implementation
 - **Arun Arya** - Testing & Frontend Improvements
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE) - see the LICENSE file for details.
+
