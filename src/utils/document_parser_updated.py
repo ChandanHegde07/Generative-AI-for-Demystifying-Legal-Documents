@@ -1,5 +1,3 @@
-# Add these methods to the end of DocumentParser class in document_parser.py
-
 from altair import Dict
 from pyparsing import Any
 
@@ -15,7 +13,6 @@ def extract_text_from_file(self, uploaded_file: Any) -> str:
         else:
             raise ValueError(f"Unsupported file type: {uploaded_file.type}")
         
-        # Apply PII anonymization if enabled
         if self.enable_pii_anonymization and self.anonymizer and text:
             anonymized_text, pii_mapping = self.anonymizer.anonymize(text)
             self.pii_mapping.update(pii_mapping)

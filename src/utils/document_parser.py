@@ -5,8 +5,8 @@ from typing import List, Tuple, Any, Dict
 import streamlit as st
 from google.cloud import vision
 from google.oauth2 import service_account
-import fitz  # PyMuPDF
-import os # <-- ADD THIS IMPORT
+import fitz  
+import os 
 
 from src.config import Config
 
@@ -19,14 +19,13 @@ class DocumentParser:
                 if "gcp_service_account" in st.secrets:
                     creds = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
                     self.vision_client = vision.ImageAnnotatorClient(credentials=creds)
-                    print("✅ Successfully initialized Google Cloud Vision client.")
+                    print("Successfully initialized Google Cloud Vision client.")
                 else:
-                    print("⚠️ WARNING: `USE_GOOGLE_VISION_OCR` is True, but `gcp_service_account` is not found in secrets. OCR will fall back to Gemini Vision.")
+                    print("WARNING: `USE_GOOGLE_VISION_OCR` is True, but `gcp_service_account` is not found in secrets. OCR will fall back to Gemini Vision.")
             except Exception as e:
-                print(f"❌ ERROR: Failed to initialize Google Cloud Vision client: {e}. OCR will fall back to Gemini Vision.")
+                print(f"ERROR: Failed to initialize Google Cloud Vision client: {e}. OCR will fall back to Gemini Vision.")
 
     def _extract_text_pdf(self, pdf_file) -> str:
-        # Your original method is unchanged
         print("DEBUG: Attempting PDF text extraction with PyMuPDF...")
         try:
             pdf_file.seek(0)
@@ -46,7 +45,6 @@ class DocumentParser:
             return self._ocr_scanned_pdf(pdf_file)
 
     def _ocr_scanned_pdf(self, pdf_file) -> str:
-        # Your original method is unchanged
         if Config.USE_GOOGLE_VISION_OCR and self.vision_client:
             try:
                 print("DEBUG: Using Google Cloud Vision for scanned PDF...")
@@ -71,7 +69,6 @@ class DocumentParser:
             return "[Failed to extract text from scanned PDF]"
 
     def _extract_text_image(self, image_file) -> str:
-        # Your original method is unchanged
         if Config.USE_GOOGLE_VISION_OCR and self.vision_client:
             return self._extract_text_image_google_vision(image_file)
         else:
@@ -79,7 +76,6 @@ class DocumentParser:
             return self._extract_text_image_gemini_vision(image_file)
 
     def _extract_text_image_google_vision(self, image_file) -> str:
-        # Your original method is unchanged
         try:
             print("DEBUG: Using Google Cloud Vision for image...")
             image_file.seek(0)
@@ -94,7 +90,6 @@ class DocumentParser:
             return self._extract_text_image_gemini_vision(image_file)
 
     def _extract_text_image_gemini_vision(self, image_file) -> str:
-        # Your original method is unchanged
         try:
             image_file.seek(0)
             image = Image.open(image_file)
@@ -111,7 +106,6 @@ class DocumentParser:
             print(f"ERROR: Gemini Vision OCR failed: {str(e)}")
             return f"[Failed to extract text from image: {image_file.name}]"
 
-    # --- THIS IS THE ONLY METHOD THAT HAS BEEN UPDATED ---
     def extract_text_from_file(self, uploaded_file: Any) -> str:
         """
         Extracts text from a file object. This method is now smart enough to handle
@@ -120,14 +114,11 @@ class DocumentParser:
         file_type = ""
         filename = ""
         
-        # Check if it's a Streamlit UploadedFile object, which has a 'type' attribute
         if hasattr(uploaded_file, 'type'):
             file_type = uploaded_file.type
             filename = uploaded_file.name
-        # Otherwise, assume it's a standard Python file object, which has a 'name' attribute
         elif hasattr(uploaded_file, 'name'):
             filename = uploaded_file.name
-            # Infer the MIME type from the file extension
             extension = os.path.splitext(filename)[1].lower()
             mime_map = {
                 '.pdf': 'application/pdf',
@@ -147,7 +138,6 @@ class DocumentParser:
         elif file_type.startswith('image/'):
             return self._extract_text_image(uploaded_file)
         elif file_type == "text/plain":
-            # Standard Python file objects need to be read differently from Streamlit's BytesIO
             if hasattr(uploaded_file, 'getvalue'):
                 return uploaded_file.getvalue().decode('utf-8')
             else:
@@ -155,10 +145,8 @@ class DocumentParser:
                 return uploaded_file.read().decode('utf-8')
         else:
             raise ValueError(f"Unsupported file type: {file_type} for file: {filename}")
-    # --------------------------------------------------------
 
     def preprocess_text(self, text: str) -> str:
-        # Your original method is unchanged
         if not text: return ""
         cleaned_text = '\n'.join([line.strip() for line in text.split('\n') if line.strip()])
         if len(cleaned_text) > Config.MAX_DOCUMENT_LENGTH:
@@ -166,7 +154,6 @@ class DocumentParser:
         return cleaned_text
     
     def validate_extracted_text(self, text: str) -> Tuple[bool, str]:
-        # Your original method is unchanged
         if not text or len(text.strip()) < Config.MIN_TEXT_FOR_ANALYSIS:
             return False, f"Text is too short for analysis (minimum {Config.MIN_TEXT_FOR_ANALYSIS} characters required)."
         return True, "Text is valid for analysis."

@@ -4,11 +4,7 @@ from langchain_community.vectorstores import FAISS
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import CrossEncoderReranker
 from langchain_experimental.text_splitter import SemanticChunker
-# --- IMPORTS HAVE CHANGED ---
-# We no longer need the raw CrossEncoder from sentence_transformers here.
-# Instead, we import the LangChain wrapper for it.
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
-# -----------------------------
 import streamlit as st
 from typing import List
 import os
@@ -39,9 +35,9 @@ class RAGService:
             print(f"DEBUG: Loading vector store from local cache: {cache_folder_path}")
             try:
                 self.vector_store = FAISS.load_local(cache_folder_path, self.embeddings, allow_dangerous_deserialization=True)
-                print("✅ DEBUG: RAGService initialized successfully from cache.")
+                print("DEBUG: RAGService initialized successfully from cache.")
             except Exception as e:
-                print(f"❌ ERROR: Failed to load from cache: {e}. Rebuilding...")
+                print(f"ERROR: Failed to load from cache: {e}. Rebuilding...")
                 self.vector_store = self._build_and_save_vector_store(document_text, cache_folder_path)
         else:
             print("DEBUG: No cache found. Building new vector store...")
@@ -55,18 +51,18 @@ class RAGService:
     def _build_and_save_vector_store(self, document_text, cache_path):
         text_chunks = self._get_semantic_chunks(document_text)
         if not text_chunks:
-            print("⚠️ WARNING: No text chunks generated.")
+            print("WARNING: No text chunks generated.")
             return None
             
         try:
             print("DEBUG: Creating new FAISS vector store...")
             vector_store = FAISS.from_texts(text_chunks, self.embeddings)
-            print("✅ DEBUG: New vector store created. Saving to local cache.")
+            print("DEBUG: New vector store created. Saving to local cache.")
             vector_store.save_local(cache_path)
             return vector_store
         except Exception as e:
             error_msg = f"Failed to create and save vector store: {e}"
-            print(f"❌ ERROR: {error_msg}")
+            print(f"ERROR: {error_msg}")
             st.warning("Could not create the document's searchable index. Q&A may be limited.")
             return None
 
@@ -84,18 +80,14 @@ class RAGService:
         print("DEBUG: Initializing CrossEncoder for reranking...")
         base_retriever = vector_store.as_retriever(search_kwargs={"k": 7})
         
-        # --- THIS IS THE FIX ---
-        # Instead of creating the raw model, we instantiate the LangChain wrapper.
-        # This wrapper is an instance of BaseCrossEncoder, which satisfies the validation.
         model = HuggingFaceCrossEncoder(model_name='cross-encoder/ms-marco-MiniLM-L-6-v2')
-        # -----------------------
         
         compressor = CrossEncoderReranker(model=model, top_n=3)
         
         compression_retriever = ContextualCompressionRetriever(
             base_compressor=compressor, base_retriever=base_retriever
         )
-        print("✅ DEBUG: Reranker initialized.")
+        print("DEBUG: Reranker initialized.")
         return compression_retriever
 
     def retrieve_relevant_chunks(self, query: str) -> str:
@@ -115,5 +107,5 @@ class RAGService:
             print(f"DEBUG: Retrieved {len(reranked_docs)} reranked chunks.")
             return context
         except Exception as e:
-            print(f"❌ ERROR: Failed during compressed retrieval: {e}")
+            print(f"ERROR: Failed during compressed retrieval: {e}")
             return ""

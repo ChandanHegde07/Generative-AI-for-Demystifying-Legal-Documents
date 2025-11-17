@@ -57,16 +57,15 @@ new_methods = '''    def extract_text_from_file(self, uploaded_file: Any) -> str
 if old_method in content:
     content = content.replace(old_method, new_methods)
     
-    # Write back
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    print("✅ Successfully updated document_parser.py with PII anonymization methods!")
+    print("Successfully updated document_parser.py with PII anonymization methods!")
     print("\nAdded methods:")
     print("  - extract_text_from_file (updated)")
     print("  - get_pii_mapping()")
     print("  - get_pii_summary()")
     print("  - deanonymize_text()")
 else:
-    print("❌ Could not find the method to replace. File may already be updated.")
+    print("Could not find the method to replace. File may already be updated.")
     print("\nPlease check if the file has been modified manually.")

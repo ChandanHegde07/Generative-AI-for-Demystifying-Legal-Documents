@@ -208,7 +208,7 @@ class PIIAnonymizer:
         if not self.pii_mapping:
             return "No PII detected."
         
-        summary = "🗺️ PII Mapping:\n{\n"
+        summary = "PII Mapping:\n{\n"
         for placeholder, value in sorted(self.pii_mapping.items()):
             summary += f'    "{placeholder}": "{value}",\n'
         summary = summary.rstrip(',\n') + '\n}'

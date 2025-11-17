@@ -2,8 +2,7 @@ import google.generativeai as genai
 from typing import List, Dict, Any, Optional
 import streamlit as st  
 import re
-import json # <-- Added import
-
+import json 
 from src.config import Config 
 from src.utils.pii_anonymizer import PIIAnonymizer
 from src.services.ai_processor import AIProcessor 
@@ -78,7 +77,6 @@ class ChatService:
     def get_suggested_questions(self, language: str = "English") -> List[str]:
         """Generates suggested questions based on the full document context."""
         try:
-            # This calls the function we merged into ai_processor
             questions_json_str = self.ai_processor.generate_suggested_questions(self.document_context, self.document_type, language)
             questions_list = json.loads(questions_json_str)
             return questions_list if isinstance(questions_list, list) else []
@@ -91,5 +89,4 @@ class ChatService:
             ]
     
     def explain_document_section(self, section_text: str, language: str = "English") -> str:
-        # This function isn't used in our merged app, but we keep it
         return self.ai_processor.explain_complex_terms(section_text, self.document_type, language)
