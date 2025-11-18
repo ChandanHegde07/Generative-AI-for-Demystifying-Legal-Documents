@@ -159,11 +159,14 @@ Multi-layer OCR system for maximum text extraction accuracy:
     ```bash
     streamlit run app.py
     ```
+---
 
 ## Authors
 - **Mukundh R Reddy** – Ideator & Core Backend
 - **Chandan Hegde** - Frontend & RAG Implementation
 - **Arun Arya** - Testing & Frontend Improvements
+
+---
 
 ## License
 
