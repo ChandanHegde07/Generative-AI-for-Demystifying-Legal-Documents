@@ -4,6 +4,7 @@ streamlit
 # --- Google AI & Cloud ---
 google-generativeai
 google-cloud-vision
+google-genai    
 
 # --- Document Processing ---
 PyMuPDF
@@ -24,7 +25,7 @@ pandas
 pydantic
 python-dotenv
 
+# --- Visualization ---
 plotly
-pandas
 matplotlib
 wordcloud
