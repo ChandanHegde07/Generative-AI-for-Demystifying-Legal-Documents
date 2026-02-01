@@ -5,7 +5,7 @@ Run this from the project root: python update_parser.py
 
 import os
 
-file_path = r'src\utils\document_parser.py'
+file_path = 'src/utils/document_parser.py'
 with open(file_path, 'r', encoding='utf-8') as f:
     content = f.read()
 

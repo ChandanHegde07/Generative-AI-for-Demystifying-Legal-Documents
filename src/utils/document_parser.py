@@ -14,6 +14,13 @@ class DocumentParser:
     def __init__(self):
         self.model = Config.initialize_gemini()
         self.vision_client = None
+        self.enable_pii_anonymization = Config.ENABLE_PII_ANONYMIZATION
+        self.pii_mapping = {}
+        
+        if self.enable_pii_anonymization:
+            from src.utils.pii_anonymizer import PIIAnonymizer
+            self.anonymizer = PIIAnonymizer()
+        
         if Config.USE_GOOGLE_VISION_OCR:
             try:
                 if "gcp_service_account" in st.secrets:
@@ -134,18 +141,58 @@ class DocumentParser:
         print(f"DEBUG: Processing file '{filename}' with inferred type '{file_type}'")
 
         if file_type == "application/pdf":
-            return self._extract_text_pdf(uploaded_file)
+            text = self._extract_text_pdf(uploaded_file)
         elif file_type.startswith('image/'):
-            return self._extract_text_image(uploaded_file)
+            text = self._extract_text_image(uploaded_file)
         elif file_type == "text/plain":
             if hasattr(uploaded_file, 'getvalue'):
-                return uploaded_file.getvalue().decode('utf-8')
+                text = uploaded_file.getvalue().decode('utf-8')
             else:
                 uploaded_file.seek(0)
-                return uploaded_file.read().decode('utf-8')
+                text = uploaded_file.read().decode('utf-8')
         else:
             raise ValueError(f"Unsupported file type: {file_type} for file: {filename}")
+        
+        # Apply PII anonymization if enabled
+        if hasattr(self, 'enable_pii_anonymization') and hasattr(self, 'anonymizer') and self.enable_pii_anonymization and self.anonymizer and text:
+            anonymized_text, pii_mapping = self.anonymizer.anonymize(text)
+            if hasattr(self, 'pii_mapping'):
+                self.pii_mapping.update(pii_mapping)
+            else:
+                self.pii_mapping = pii_mapping
+            return anonymized_text
+        
+        return text
+    
+    def get_pii_mapping(self) -> Dict[str, str]:
+        """Get the PII mapping for extracted documents"""
+        if hasattr(self, 'pii_mapping'):
+            return self.pii_mapping
+        return {}
+    
+    def get_pii_summary(self) -> str:
+        """Get a formatted summary of detected PII"""
+        if hasattr(self, 'anonymizer'):
+            return self.anonymizer.get_pii_summary()
+        return "PII anonymization is disabled."
+    
+    def deanonymize_text(self, text: str) -> str:
+        """Restore original PII in text"""
+        if hasattr(self, 'anonymizer') and hasattr(self, 'pii_mapping') and self.anonymizer and self.pii_mapping:
+            return self.anonymizer.deanonymize(text, self.pii_mapping)
+        return text
 
+    def extract_from_multiple_files(self, uploaded_files: List[Any]) -> str:
+        """Extract text from multiple uploaded files and combine them"""
+        combined_text = []
+        
+        for file in uploaded_files:
+            file_text = self.extract_text_from_file(file)
+            if file_text:
+                combined_text.append(file_text)
+        
+        return "\n\n---\n\n".join(combined_text)
+    
     def preprocess_text(self, text: str) -> str:
         if not text: return ""
         cleaned_text = '\n'.join([line.strip() for line in text.split('\n') if line.strip()])

@@ -43,7 +43,7 @@ gemini_translator = get_gemini_translator()
 SUPPORTED_LANGUAGES = Config.SUPPORTED_LANGUAGES
 
 st.set_page_config(
-    page_title="Healthcare Document AI Assistant",
+    page_title="Legal & Healthcare Document AI Assistant",
     page_icon="",
     layout="wide",
     initial_sidebar_state="auto" 
