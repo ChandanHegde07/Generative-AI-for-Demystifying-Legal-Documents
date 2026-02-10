@@ -1,44 +1,48 @@
-# Legal-Doc-AI
+<h1 style="color: #2E86AB; text-align: center;">Generative AI for Healthcare Docs</h1>
 
 <div align="center">
 
-**An AI-powered assistant designed to simplify complex legal and healthcare documents.**
+<span style="background-color: #28A745; color: white; padding: 5px 15px; border-radius: 20px;">MIT License</span>
+<span style="background-color: #3776AB; color: white; padding: 5px 15px; border-radius: 20px;">Python 3.9+</span>
+<span style="background-color: #FF4B4B; color: white; padding: 5px 15px; border-radius: 20px;">Streamlit</span>
+
+**<span style="color: #6C757D;">An AI-powered assistant designed to simplify complex legal and healthcare documents.</span>**
 
 </div>
 
 ---
 
-## Key Features
+## <span style="color: #E94F37;">Key Features</span>
 
-| Feature | Description |
-|---------|-------------|
-| **Intelligent Document Processing** | Multi-format support (PDF, JPEG, PNG, TXT) with advanced OCR powered by Google Cloud Vision API |
-| **Automatic Detection** | Instantly identifies document types: legal contracts, medical reports, insurance policies, or prescriptions |
-| **PII Protection** | Enterprise-grade anonymization masking 7 types of PII (Emails, Phones, Aadhaar/ID, Dates, Names, Organizations, Locations) |
-| **Deep Analysis & RAG** | Semantic search with FAISS vector storage and Hugging Face CrossEncoder for accurate information retrieval |
-| **Multilingual Support** | Results translated into English, Hindi, or Kannada |
-| **Plain Language Simplification** | Converts "legalese" and medical jargon into everyday terms |
-
----
-
-## Tech Stack
-
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | Streamlit |
-| **AI Models** | Google Gemini Pro, Gemini Vision |
-| **Embeddings** | Google Generative AI Embeddings |
-| **Vector DB** | FAISS (Facebook AI Similarity Search) |
-| **OCR Engine** | Google Cloud Vision API, Pillow |
-| **Reranking** | Hugging Face CrossEncoder |
-| **Orchestration** | LangChain, Python |
+| <span style="color: #2E86AB;">Feature</span> | <span style="color: #2E86AB;">Description</span> |
+|:---|:---|
+| <span style="color: #28A745;">**Intelligent Document Processing**</span> | Multi-format support (PDF, JPEG, PNG, TXT) with advanced OCR powered by Google Cloud Vision API |
+| <span style="color: #28A745;">**Automatic Detection**</span> | Instantly identifies document types: legal contracts, medical reports, insurance policies, or prescriptions |
+| <span style="color: #DC3545;">**PII Protection**</span> | Enterprise-grade anonymization masking 7 types of PII (Emails, Phones, Aadhaar/ID, Dates, Names, Organizations, Locations) |
+| <span style="color: #17A2B8;">**Deep Analysis & RAG**</span> | Semantic search with FAISS vector storage and Hugging Face CrossEncoder for accurate information retrieval |
+| <span style="color: #FFC107;">**Multilingual Support**</span> | Results translated into English, Hindi, or Kannada |
+| <span style="color: #6F42C1;">**Plain Language Simplification**</span> | Converts "legalese" and medical jargon into everyday terms |
 
 ---
 
-## Project Structure
+## <span style="color: #FD7E14;">Tech Stack</span>
+
+| <span style="color: #2E86AB;">Layer</span> | <span style="color: #2E86AB;">Technologies</span> |
+|:---|:---|
+| <span style="color: #E94F37;">**Frontend**</span> | <span style="background-color: #F8F9FA; padding: 2px 8px; border-radius: 4px;">Streamlit</span> |
+| <span style="color: #E94F37;">**AI Models**</span> | <span style="background-color: #F8F9FA; padding: 2px 8px; border-radius: 4px;">Google Gemini Pro, Gemini Vision</span> |
+| <span style="color: #E94F37;">**Embeddings**</span> | <span style="background-color: #F8F9FA; padding: 2px 8px; border-radius: 4px;">Google Generative AI Embeddings</span> |
+| <span style="color: #E94F37;">**Vector DB**</span> | <span style="background-color: #F8F9FA; padding: 2px 8px; border-radius: 4px;">FAISS (Facebook AI Similarity Search)</span> |
+| <span style="color: #E94F37;">**OCR Engine**</span> | <span style="background-color: #F8F9FA; padding: 2px 8px; border-radius: 4px;">Google Cloud Vision API, Pillow</span> |
+| <span style="color: #E94F37;">**Reranking**</span> | <span style="background-color: #F8F9FA; padding: 2px 8px; border-radius: 4px;">Hugging Face CrossEncoder</span> |
+| <span style="color: #E94F37;">**Orchestration**</span> | <span style="background-color: #F8F9FA; padding: 2px 8px; border-radius: 4px;">LangChain, Python</span> |
+
+---
+
+## <span style="color: #20C997;">Project Structure</span>
 
 ```text
-Legal-Doc-AI/
+<span style="color: #6C757D;">Legal-Doc-AI/
 ├── src/
 │   ├── services/
 │   │   ├── ai_processor.py      # Document analysis & simplification logic
@@ -56,39 +60,40 @@ Legal-Doc-AI/
 
 ---
 
-## Getting Started
+## <span style="color: #28A745;">Getting Started</span>
 
-### 1. Prerequisites
-- Python 3.9+
-- A Google AI Studio API Key
+### <span style="color: #2E86AB;">1. Prerequisites</span>
 
-### 2. Installation
+- <span style="color: #3776AB;">**Python 3.9+**</span>
+- <span style="color: #F7DF1E;">**A Google AI Studio API Key**</span>
+
+### <span style="color: #2E86AB;">2. Installation</span>
 
 ```bash
-# Clone the repository
+<span style="color: #6C757D;"># Clone the repository</span>
 git clone https://github.com/ChandanHegde07/Legal-Doc-AI.git
 cd Legal-Doc-AI
 
-# Setup virtual environment
+<span style="color: #6C757D;"># Setup virtual environment</span>
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  <span style="color: #6C757D;"># On Windows: venv\Scripts\activate</span>
 
-# Install dependencies
+<span style="color: #6C757D;"># Install dependencies</span>
 pip install -r requirements.txt
 ```
 
-### 3. Configuration
+### <span style="color: #2E86AB;">3. Configuration</span>
 
 Create a `.env` file in the root directory:
 
 ```env
-GOOGLE_API_KEY="your_gemini_api_key_here"
+<span style="color: #28A745;">GOOGLE_API_KEY</span>="your_gemini_api_key_here"
 
-# Optional: Path to Google Cloud Service Account JSON for Vision API
-GOOGLE_APPLICATION_CREDENTIALS="path/to/service-account.json"
+<span style="color: #6C757D;"># Optional: Path to Google Cloud Service Account JSON for Vision API</span>
+<span style="color: #28A745;">GOOGLE_APPLICATION_CREDENTIALS</span>="path/to/service-account.json"
 ```
 
-### 4. Run the App
+### ▶<span style="color: #2E86AB;">4. Run the App</span>
 
 ```bash
 streamlit run app.py
@@ -96,38 +101,40 @@ streamlit run app.py
 
 ---
 
-## Use Cases
+## <span style="color: #E94F37;">Use Cases</span>
 
-| Domain | Use Case |
-|--------|----------|
-| **Legal** | Summarizing Terms of Service (ToS) or identifying hidden "gotcha" clauses in contracts |
-| **Healthcare** | Explaining blood test results or medication schedules to patients |
-| **Insurance** | Checking if a specific medical procedure is covered under a policy |
-| **Privacy-Conscious Users** | Analyzing sensitive data without exposing identity to LLM providers |
-
----
-
-## Future Scope
-
-- [ ] **Text-to-Speech**: Audio explanations for better accessibility
-- [ ] **Expanded Dialects**: Support for more regional Indian languages
-- [ ] **ML-based PII**: Moving beyond Regex to Named Entity Recognition (NER) for higher PII accuracy
-- [ ] **Contract Comparison**: Side-by-side analysis of two document versions
+| <span style="color: #2E86AB;">Domain</span> | <span style="color: #2E86AB;">Use Case</span> |
+|:---|:---|
+| <span style="color: #E94F37;">**Legal**</span> | Summarizing Terms of Service (ToS) or identifying hidden "gotcha" clauses in contracts |
+| <span style="color: #DC3545;">**Healthcare**</span> | Explaining blood test results or medication schedules to patients |
+| <span style="color: #17A2B8;">**Insurance**</span> | Checking if a specific medical procedure is covered under a policy |
+| <span style="color: #6F42C1;">**Privacy-Conscious Users**</span> | Analyzing sensitive data without exposing identity to LLM providers |
 
 ---
 
-## Authors
+## <span style="color: #FD7E14;">Future Scope</span>
 
-| Name | Role |
-|------|------|
-| [Mukundh R Reddy](https://github.com/) | Ideator & Core Backend |
-| [Chandan Hegde](https://github.com/ChandanHegde07) | Frontend & RAG Implementation |
-| [Arun Arya](https://github.com/) | Testing & Frontend UI/UX |
+- [ ] <span style="color: #28A745;">**Text-to-Speech**</span>: Audio explanations for better accessibility
+- [ ] <span style="color: #28A745;">**Expanded Dialects**</span>: Support for more regional Indian languages
+- [ ] <span style="color: #28A745;">**ML-based PII**</span>: Moving beyond Regex to Named Entity Recognition (NER) for higher PII accuracy
+- [ ] <span style="color: #28A745;">**Contract Comparison**</span>: Side-by-side analysis of two document versions
+
+---
+
+## <span style="color: #20C997;">Authors</span>
+
+| <span style="color: #2E86AB;">Name</span> | <span style="color: #2E86AB;">Role</span> |
+|:---|:---|
+| [Mukundh R Reddy](https://github.com/mukundhr) | <span style="color: #6C757D;">Ideator & Core Backend</span> |
+| [Chandan Hegde](https://github.com/ChandanHegde07) | <span style="color: #6C757D;">Frontend & RAG Implementation</span> |
+| [Arun Arya](https://github.com/ArunArya-01) | <span style="color: #6C757D;">Testing & Frontend UI/UX</span> |
 
 ---
 
 <div align="center">
 
-**Made for simplifying legal & healthcare documents**
+<span style="background: linear-gradient(90deg, #E94F37, #2E86AB, #28A745, #FD7E14); color: white; padding: 10px 30px; border-radius: 25px; font-weight: bold;">
+Made for simplifying legal & healthcare documents
+</span>
 
 </div>
